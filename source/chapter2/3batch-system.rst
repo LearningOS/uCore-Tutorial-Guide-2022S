@@ -1,7 +1,7 @@
 
 .. _term-batchos:
 
-实现批处理操作系统
+实现批处理操作系统的细节
 ==============================
 
 .. toctree::
@@ -11,212 +11,122 @@
 本节导读
 -------------------------------
 
-目前本章设计的批处理操作系统--泥盆纪“邓式鱼”操作系统，还没有文件/文件系统的机制与设计实现，所以还缺少一种类似文件系统那样的松耦合灵活放置应用程序和加载执行应用程序的机制。这就需要设计一种简洁的程序放置和加载方式，能够在批处理操作系统与应用程序之间建立联系的纽带。这主要包括两个方面：
+前面一节中我们明白了os是如何执行应用程序的。但是os是如何”找到“这些应用程序并允许它们的呢？在引言之中我们简要介绍了这是由link_app.S以及kernel_app.ld完成的。实际上，能够在批处理操作系统与应用程序之间建立联系的纽带。这主要包括两个方面：
 
 - 静态编码：通过一定的编程技巧，把应用程序代码和批处理操作系统代码“绑定”在一起。
 - 动态加载：基于静态编码留下的“绑定”信息，操作系统可以找到应用程序文件二进制代码的起始地址和长度，并能加载到内存中运行。
 
-这里与硬件相关且比较困难的地方是如何让在内核态的批处理操作系统启动应用程序，且能让应用程序在用户态正常执行。本节会讲大致过程，而具体细节将放到下一节具体讲解。
+这里与硬件相关且比较困难的地方是如何让在内核态的批处理操作系统启动应用程序，且能让应用程序在用户态正常执行。
 
 将应用程序链接到内核
 --------------------------------------------
 
-在本章中，我们把应用程序的二进制镜像文件作为内核的数据段链接到内核里面，因此内核需要知道内含的应用程序的数量和它们的位置，这样才能够在运行时
-对它们进行管理并能够加载到物理内存。
+makefile更新
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-在 ``os/src/main.rs`` 中能够找到这样一行：
+我们首先看一看本章的makefile改变了什么::
+    link_app.o: link_app.S
+    link_app.S: pack.py
+        @$(PY) pack.py
+    kernel_app.ld: kernelld.py
+        @$(PY) kernelld.py
 
-.. code-block:: rust
+    kernel: $(OBJS) kernel_app.ld link_app.S
+        $(LD) $(LDFLAGS) -T kernel_app.ld -o kernel $(OBJS)
+        $(OBJDUMP) -S kernel > kernel.asm
+        $(OBJDUMP) -t kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > kernel.sym
 
-    global_asm!(include_str!("link_app.S"));
+可以看到makefile执行了两个python脚本生成了我们提到的link_app.S和kernel_app.ld。这里选择python只是因为比较好写生成的代码，我们的os和python没有任何关系。link_app.S的大致内容如下::
 
-这里我们引入了一段汇编代码 ``link_app.S`` ，它一开始并不存在，而是在构建的时候自动生成的。当我们使用 ``make run`` 让系统成功运行起来
-之后，我们可以先来看一看里面的内容：
-
-.. code-block:: asm
-    :linenos:
-    
-    # os/src/link_app.S
-
-        .align 3
+        .align 4
         .section .data
-        .global _num_app
-    _num_app:
-        .quad 3
+        .global _app_num
+    _app_num:
+        .quad 2
         .quad app_0_start
         .quad app_1_start
-        .quad app_2_start
-        .quad app_2_end
-        
-        .section .data
+        .quad app_1_end
+
+        .global _app_names
+    _app_names:
+    .string "hello.bin"
+    .string "matrix.bin"
+
+        .section .data.app0
         .global app_0_start
-        .global app_0_end
     app_0_start:
-        .incbin "../user/target/riscv64gc-unknown-none-elf/release/00hello_world.bin"
-    app_0_end:
-            
-        .section .data
+        .incbin "../user/target/hello.bin" (文件名是不是要改一下)
+
+        .section .data.app1
         .global app_1_start
-        .global app_1_end
     app_1_start:
-        .incbin "../user/target/riscv64gc-unknown-none-elf/release/01store_fault.bin"
+        .incbin "../user/target/matrix.bin"
     app_1_end:
-            
-        .section .data
-        .global app_2_start
-        .global app_2_end
-    app_2_start:
-        .incbin "../user/target/riscv64gc-unknown-none-elf/release/02power.bin"
-    app_2_end:
 
-可以看到第 13 行开始的三个数据段分别插入了三个应用程序的二进制镜像，并且各自有一对全局符号 ``app_*_start, app_*_end`` 指示它们的
-开始和结束位置。而第 3 行开始的另一个数据段相当于一个 64 位整数数组。数组中的第一个元素表示应用程序的数量，后面则按照顺序放置每个应用
-程序的起始地址，最后一个元素放置最后一个应用程序的结束位置。这样每个应用程序的位置都能从该数组中相邻两个元素中得知。这个数组所在的位置
-同样也由全局符号 ``_num_app`` 所指示。
+pack.py会遍历../user/target/，并将该目录下的目标用户程序*.bin包含入 link_app.S中，同时给每一个bin文件记录其地址和名称信息。最后，我们在 Makefile 中会将内核与 link_app.S 一同编译并链接。这样，我们在内核中就可以通过 extern 指令访问到用户程序的所有信息，如其文件名等。
 
-这个文件是在 ``cargo build`` 的时候，由脚本 ``os/build.rs`` 控制生成的。有兴趣的读者可以参考其代码。
+由于 riscv 要求程序指令必须是对齐的，我们对内核链接脚本也作出修改，保证用户程序链接时的指令对齐，这些内容见 kernel/kernelld.py。这个脚本也会遍历../user/target/，并对每一个bin文件分配对齐的空间。最终修改后的kernel_app.ld脚本中多了如下对齐要求::
 
-找到并加载应用程序二进制码
------------------------------------------------
+    .data : {
+        *(.data)
+        . = ALIGN(0x1000);
+        *(.data.app0)
+        . = ALIGN(0x1000);
+        *(.data.app1)
+        . = ALIGN(0x1000);
+        *(.data.app2)
+        . = ALIGN(0x1000);
+        *(.data.app3)
+        . = ALIGN(0x1000);
+        *(.data.app4)
 
-能够找到并加载应用程序二进制码的应用管理器 ``AppManager`` 是“邓式鱼”操作系统的核心组件。我们在 ``os`` 的 ``batch`` 子模块中实现一个应用管理器，它的主要功能是：
-
-- 保存应用数量和各自的位置信息，以及当前执行到第几个应用了。
-- 根据应用程序位置信息，初始化好应用所需内存空间，并加载应用执行。
-
-应用管理器 ``AppManager`` 结构体定义
-如下：
-
-.. code-block:: rust
-
-    struct AppManager {
-        inner: RefCell<AppManagerInner>,
-    }
-    struct AppManagerInner {
-        num_app: usize,
-        current_app: usize,
-        app_start: [usize; MAX_APP_NUM + 1],
-    }
-    unsafe impl Sync for AppManager {}
-
-这里我们可以看出，上面提到的应用管理器需要保存和维护的信息都在 ``AppManagerInner`` 里面，而结构体 ``AppManager`` 里面只是保存了
-一个指向 ``AppManagerInner`` 的 ``RefCell`` 智能指针。这样设计的原因在于：我们希望将 ``AppManager`` 实例化为一个全局变量使得
-任何函数都可以直接访问，但是里面的 ``current_app`` 字段表示当前执行到了第几个应用，它会在系统运行期间发生变化。因此在声明全局变量
-的时候一种自然的方法是利用 ``static mut``。但是在 Rust 中，任何对于 ``static mut`` 变量的访问都是 unsafe 的，而我们要尽可能
-减少 unsafe 的使用来更多的让编译器负责安全性检查。
-
-此外，为了让 ``AppManager`` 能被直接全局实例化，我们需要将其标记为 ``Sync`` 。
-
-.. note::
-
-    **为什么对于 static mut 的访问是 unsafe 的**
-
-    **为什么要将 AppManager 标记为 Sync**
-
-    可以参考附录A：Rust 快速入门的并发章节。
-
-.. _term-interior-mutability:
-
-于是，我们利用 ``RefCell`` 来提供 **内部可变性** (Interior Mutability)，
-所谓的内部可变性就是指在我们只能拿到 ``AppManager`` 的不可变借用，意味着同样也只能
-拿到 ``AppManagerInner`` 的不可变借用的情况下依然可以修改 ``AppManagerInner`` 里面的字段。
-使用 ``RefCell::borrow/RefCell::borrow_mut`` 分别可以拿到 ``RefCell`` 里面内容的不可变借用/可变借用， 
-``RefCell`` 会在运行时维护当前它管理的对象的已有借用状态，并在访问对象时进行借用检查。于是 ``RefCell::borrow_mut`` 就是我们实现内部可变性的关键。
-
-我们这样初始化 ``AppManager`` 的全局实例：
-
-.. code-block:: rust
-
-    lazy_static! {
-        static ref APP_MANAGER: AppManager = AppManager {
-            inner: RefCell::new({
-                extern "C" { fn _num_app(); }
-                let num_app_ptr = _num_app as usize as *const usize;
-                let num_app = unsafe { num_app_ptr.read_volatile() };
-                let mut app_start: [usize; MAX_APP_NUM + 1] = [0; MAX_APP_NUM + 1];
-                let app_start_raw: &[usize] = unsafe {
-                    core::slice::from_raw_parts(num_app_ptr.add(1), num_app + 1)
-                };
-                app_start[..=num_app].copy_from_slice(app_start_raw);
-                AppManagerInner {
-                    num_app,
-                    current_app: 0,
-                    app_start,
-                }
-            }),
-        };
+        *(.data.*)
     }
 
-初始化的逻辑很简单，就是找到 ``link_app.S`` 中提供的符号 ``_num_app`` ，并从这里开始解析出应用数量以及各个应用的开头地址。注意其中对于切片类型的使用能够很大程度上简化编程。
+编译出的kernel已经包含了bin文件的信息。熟悉汇编的同学可以去看看生成的kernel.asm（kernel整体的汇编代码）来加深理解。
 
-这里我们使用了外部库 ``lazy_static`` 提供的 ``lazy_static!`` 宏。要引入这个外部库，我们需要加入依赖：
+内核的relocation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: toml
+内核中通过访问 link_app.S 中定义的 _app_num、app_0_start 等符号来获得用户程序位置.
 
-    # os/Cargo.toml
+.. code-block:: c
 
-    [dependencies]
-    lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
+    // os/batch.c
+    extern char _app_num[]; // 在link_app.S之中已经定义
+    void batchinit() {
+        app_info_ptr = (uint64*) _app_num;
+        app_num = *app_info_ptr;
+        app_info_ptr++;
+        // from now on:
+        // app_n_start = app_info_ptr[n]
+        // app_n_end = app_info_ptr[n+1]
+    }
 
-``lazy_static!`` 宏提供了全局变量的运行时初始化功能。一般情况下，全局变量必须在编译期设置一个初始值，但是有些全局变量依赖于运行期间
-才能得到的数据作为初始值。这导致这些全局变量需要在运行时发生变化，也即重新设置初始值之后才能使用。如果我们手动实现的话有诸多不便之处，
-比如需要把这种全局变量声明为 ``static mut`` 并衍生出很多 unsafe code。这种情况下我们可以使用 ``lazy_static!`` 宏来帮助我们解决
-这个问题。这里我们借助 ``lazy_static!`` 声明了一个 ``AppManager`` 结构的名为 ``APP_MANAGER`` 的全局实例，且只有在它第一次被使用到
-的时候才会进行实际的初始化工作。
+然而我们并不能直接跳转到 app_n_start 直接运行，因为用户程序在编译的时候，会假定程序处在虚存的特定位置，而由于我们还没有虚存机制，因此我们在运行之前还需要将用户程序加载到规定的物理内存位置。为此我们规定了用户的链接脚本，并在内核完成程序的 "搬运"::
 
-因此，借助 Rust 核心库提供的 ``RefCell`` 和外部库 ``lazy_static!``，我们就能在避免 ``static mut`` 声明的情况下以更加优雅的Rust风格使用全局变量。
+    # user/lib/arch/riscv/user.ld
+    SECTIONS {
+        . = 0x80400000;                 #　规定了内存加载位置
 
-``AppManagerInner`` 的方法中， ``print_app_info/get_current_app/move_to_next_app`` 都相当简单直接，需要说明的是 ``load_app``：
-
-.. code-block:: rust
-    :linenos:
-
-    unsafe fn load_app(&self, app_id: usize) {
-        if app_id >= self.num_app {
-            panic!("All applications completed!");
+        .startup : {
+            *crt.S.o(.text)             #　确保程序入口在程序开头
         }
-        println!("[kernel] Loading app_{}", app_id);
-        // clear icache
-        llvm_asm!("fence.i" :::: "volatile");
-        // clear app area
-        (APP_BASE_ADDRESS..APP_BASE_ADDRESS + APP_SIZE_LIMIT).for_each(|addr| {
-            (addr as *mut u8).write_volatile(0);
-        });
-        let app_src = core::slice::from_raw_parts(
-            self.app_start[app_id] as *const u8,
-            self.app_start[app_id + 1] - self.app_start[app_id]
-        );
-        let app_dst = core::slice::from_raw_parts_mut(
-            APP_BASE_ADDRESS as *mut u8,
-            app_src.len()
-        );
-        app_dst.copy_from_slice(app_src);
+
+        .text : { *(.text) }
+        .data : { *(.data .rodata) }
+
+        /DISCARD/ : { *(.eh_*) }
     }
 
-这个方法负责将参数 ``app_id`` 对应的应用程序的二进制镜像加载到物理内存以 ``0x80400000`` 开头的位置，这个位置是批处理操作系统和应用程序
-之间约定的常数地址，回忆上一小节中，我们也调整应用程序的内存布局以同一个地址开头。第 8 行开始，我们首先将一块内存清空，然后找到待加载应用
-二进制镜像的位置，并将它复制到正确的位置。它本质上是把数据从一块内存复制到另一块内存，从批处理操作系统的角度来看是将它数据段的一部分复制到了它
-程序之外未知的地方。在这一点上也体现了冯诺依曼计算机的 ``代码即数据`` 的特征。
+这样之后，我们就可以在读取指定内存位置的bin文件来执行它们了。下面是os内核读取link_app.S的info并把它们搬运到0x80400000开始位置的具体过程。
+.. code-block:: c
 
-.. _term-dcache:
-.. _term-icache:
-
-注意第 7 行我们插入了一条奇怪的汇编指令 ``fence.i`` ，它是用来清理 i-cache 的。我们知道缓存是存储层级结构中提高访存速度的很重要一环。
-而 CPU 对物理内存所做的缓存又分成 **数据缓存** (d-cache) 和 **指令缓存** (i-cache) 两部分，分别在 CPU 访存和取指的时候使用。在取指
-的时候，对于一个指令地址， CPU 会先去 i-cache 里面看一下它是否在某个已缓存的缓存行内，如果在的话它就会直接从高速缓存中拿到指令而不是通过
-总线和内存通信。通常情况下， CPU 会认为程序的代码段不会发生变化，因此 i-cache 是一种只读缓存。但在这里，我们会修改会被 CPU 取指的内存
-区域，这会使得 i-cache 中含有与内存中不一致的内容。因此我们这里必须使用 ``fence.i`` 指令手动清空 i-cache ，让里面所有的内容全部失效，
-才能够保证正确性。 
-
-.. warning:: 
-
-   **模拟器与真机的不同之处**
-
-   至少在 Qemu 模拟器的默认配置下，各类缓存如 i-cache/d-cache/TLB 都处于机制不完全甚至完全不存在的状态。目前在 Qemu 平台上，即使我们
-   不加上刷新 i-cache 的指令，大概率也是能够正常运行的。但在 K210 真机上就会看到错误。
-
-``batch`` 子模块对外暴露出如下接口：
-
-- ``init`` ：调用 ``print_app_info`` 的时候第一次用到了全局变量 ``APP_MANAGER`` ，它也是在这个时候完成初始化；
-- ``run_next_app`` ：批处理操作系统的核心操作，即加载并运行下一个应用程序。当批处理操作系统完成初始化或者一个应用程序运行结束或出错之后会调用
-  该函数。我们下节再介绍其具体实现。
+    // os/batch.c
+    const uint64 BASE_ADDRESS = 0x80400000, MAX_APP_SIZE = 0x20000;
+    int load_app(uint64* info) {
+        uint64 start = info[0], end = info[1], length = end - start;
+        memset((void*)BASE_ADDRESS, 0, MAX_APP_SIZE);
+        memmove((void*)BASE_ADDRESS, (void*)start, length);
+        return length;
+    }
