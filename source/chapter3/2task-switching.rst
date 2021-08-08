@@ -11,7 +11,7 @@
 
 导语中提到了，进程就是运行的程序。既然是程序，那么它就需要程序执行的一切资源，包括栈、寄存器等等。不同于用户线程，用户进程有着自己独立的用户栈和内核栈。但是无论如何寄存器是只有一套的，因此进程切换时对于寄存器的保存以及恢复是我们需要关心的问题。
 
-本章中新增的proc.h定义了我们OS的进程的PCB（进程管理块，和进程一一对应）结构体；
+本章中新增的proc.h定义了我们OS的进程的PCB（进程管理块，和进程一一对应。它包含了进程几乎所有的信息。）结构体；
 
 .. code-block:: C
     :linenos:
@@ -83,106 +83,222 @@ OS的进程结构
         return p;
     }
 
-分配进程需要初始化其PID以及清空其栈空间，并设置第一次运行的上下文信息为usertrapret，使得进程能够从内核的S态返回U态并执行自己的代码。
+分配进程需要初始化其PID以及清空其栈空间，并设置第一次运行的上下文信息为usertrapret，使得进程能够从内核的S态返回U态并执行自己的代码。还记得为什么第一次返回就能回到测例的开始处吗？可以回顾一下run_all_app函数是如何处理的。
 
-接下来我们同样从栈上内容的角度来看 ``__switch`` 的整体流程：
+进程的切换
+---------------------------------
 
-.. image:: switch-1.png
+下面我们介绍本章的最最最重要的进程切换（调度）问题。
 
-.. image:: switch-2.png
+进程的切换？
 
-Trap 执行流在调用 ``__switch`` 之前就需要明确知道即将切换到哪一条目前正处于暂停状态的 Trap 执行流，因此 ``__switch`` 有两个参数，第一个参数代表它自己，第二个参数则代表即将切换到的那条 Trap 执行流。这里我们用上面提到过的 ``task_cx_ptr2`` 作为代表。在上图中我们假设某次 ``__switch`` 调用要从 Trap 执行流 A 切换到 B，一共可以分为五个阶段，在每个阶段中我们都给出了 A 和 B 内核栈上的内容。
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- 阶段 [1]：在 Trap 执行流 A 调用 ``__switch`` 之前，A 的内核栈上只有 Trap 上下文和 Trap 处理的调用栈信息，而 B 是之前被切换出去的，它的栈顶还有额外的一个任务上下文；
-- 阶段 [2]：A 在自身的内核栈上分配一块任务上下文的空间在里面保存 CPU 当前的寄存器快照。随后，我们更新 A 的 ``task_cx_ptr``，只需写入指向它的指针 ``task_cx_ptr2`` 指向的内存即可；
-- 阶段 [3]：这一步极为关键。这里读取 B 的 ``task_cx_ptr`` 或者说 ``task_cx_ptr2`` 指向的那块内存获取到 B 的内核栈栈顶位置，并复制给 ``sp`` 寄存器来换到 B 的内核栈。由于内核栈保存着它迄今为止的执行历史记录，可以说 **换栈也就实现了执行流的切换** 。正是因为这一步， ``__switch`` 才能做到一个函数跨两条执行流执行。
-- 阶段 [4]：CPU 从 B 的内核栈栈顶取出任务上下文并恢复寄存器状态，在这之后还要进行退栈操作。
-- 阶段 [5]：对于 B 而言， ``__switch`` 函数返回，可以从调用 ``__switch`` 的位置继续向下执行。
+说到切换，大家肯定对第二章中异常产生后，从U态切换到S态的流程历历在目。实际上，进程的切换和它十分类似。大家可以类比一下，第二章我们是从进程1--->内核态处理异常--->进程1。那我们完全可以把整个流程转换为进程1-->内核切换-->进程2-->切换-->进程1来实现执行流的切换，并且保证中途的保存和恢复不出错呀！当然这么做会比较复杂，我们的处理方式更加复古一点，但是思路基本是一样的。回顾一下进程的PCB结构体中两个用于切换的结构体成员：
 
-从结果来看，我们看到 A 执行流 和 B 执行流的状态发生了互换， A 在保存任务上下文之后进入暂停状态，而 B 则恢复了上下文并在 CPU 上执行。
+.. code-block:: C
+    :linenos:
 
-下面我们给出 ``__switch`` 的实现：
+    struct trapframe *trapframe; 
+    struct context context; 
+
+trapframe大家在第二章已经和它打过交到了。那么context这个结构体又记录了什么呢?
+
+.. code-block:: C
+    :linenos:
+
+    // kernel/trap.h
+
+    // Saved registers for kernel context switches.
+    struct context {
+        uint64 ra;
+        uint64 sp;
+        // callee-saved
+        uint64 s0;
+        uint64 s1;
+        uint64 s2;
+        uint64 s3;
+        uint64 s4;
+        uint64 s5;
+        uint64 s6;
+        uint64 s7;
+        uint64 s8;
+        uint64 s9;
+        uint64 s10;
+        uint64 s11;
+    };
+
+它相比trapframe，只记录了寄存器的信息。聪明的你可能已经发现它们都是被调用者保存的寄存器。在切换的核心函数swtch（注意拼写）之中，就是对这个结构体进行了操作:
 
 .. code-block:: riscv
     :linenos:
 
-    # os/src/task/switch.S
+    # Context switch
+    #
+    #   void swtch(struct context *old, struct context *new);
+    #
+    # Save current registers in old. Load from new.
 
-    .altmacro
-    .macro SAVE_SN n
-        sd s\n, (\n+1)*8(sp)
-    .endm
-    .macro LOAD_SN n
-        ld s\n, (\n+1)*8(sp)
-    .endm
-        .section .text
-        .globl __switch
-    __switch:
-        # __switch(
-        #     current_task_cx_ptr2: &*const TaskContext,
-        #     next_task_cx_ptr2: &*const TaskContext
-        # )
-        # push TaskContext to current sp and save its address to where a0 points to
-        addi sp, sp, -13*8
-        sd sp, 0(a0)
-        # fill TaskContext with ra & s0-s11
-        sd ra, 0(sp)
-        .set n, 0
-        .rept 12
-            SAVE_SN %n
-            .set n, n + 1
-        .endr
-        # ready for loading TaskContext a1 points to
-        ld sp, 0(a1)
-        # load registers in the TaskContext
-        ld ra, 0(sp)
-        .set n, 0
-        .rept 12
-            LOAD_SN %n
-            .set n, n + 1
-        .endr
-        # pop TaskContext
-        addi sp, sp, 13*8
-        ret
+    .globl swtch
 
-我们手写汇编代码来实现 ``__switch`` 。可以看到它的函数原型中的两个参数分别是当前 Trap 执行流和即将被切换到的 Trap 执行流的 ``task_cx_ptr2`` ，从 :ref:`RISC-V 调用规范 <term-calling-convention>` 可以知道它们分别通过寄存器 ``a0/a1`` 传入。
+    # a0 = &old_context, a1 = &new_context
 
-阶段 [2] 体现在第 18~26 行。第 18 行在 A 的内核栈上预留任务上下文的空间，然后将当前的栈顶位置保存下来。接下来就是逐个对寄存器进行保存，从中我们也能够看出 ``TaskContext`` 里面究竟包含哪些寄存器：
+    swtch:
+        sd ra, 0(a0)        # save `ra`
+        sd sp, 8(a0)        # save `sp`
+        sd s0, 16(a0)
+        sd s1, 24(a0)
+        sd s2, 32(a0)
+        sd s3, 40(a0)
+        sd s4, 48(a0)
+        sd s5, 56(a0)
+        sd s6, 64(a0)
+        sd s7, 72(a0)
+        sd s8, 80(a0)
+        sd s9, 88(a0)
+        sd s10, 96(a0)
+        sd s11, 104(a0)
 
-.. code-block:: rust
+        ld ra, 0(a1)        # restore `ra`
+        ld sp, 8(a1)        # restore `sp`
+        ld s0, 16(a1)
+        ld s1, 24(a1)
+        ld s2, 32(a1)
+        ld s3, 40(a1)
+        ld s4, 48(a1)
+        ld s5, 56(a1)
+        ld s6, 64(a1)
+        ld s7, 72(a1)
+        ld s8, 80(a1)
+        ld s9, 88(a1)
+        ld s10, 96(a1)
+        ld s11, 104(a1)
+
+        ret                 # return to new `ra`
+
+为什么只切换这些寄存器就能实现一个切换的效果呢？这是因为执行了swtch切换状态之后，切换的目标进程恢复了保存在context之中的寄存器，并且sp寄存器也指向了它自己栈的位置，ra指向自己测例代码的位置而不是之前函数的位置，这已经足够其从切换出去的位置继续执行了（切换的过程可以视为一次函数调用）。因为真正切换swtch都在内核态发生，也无需记录更多的数据。
+
+总结一下，swtch函数干了这些事情：
+    - 执行流：通过切换 ra
+    - 堆栈：通过切换 sp
+    - 寄存器： 通过保存和恢复被调用者保存寄存器。调用者保存寄存器由编译器生成的代码负责保存和恢复。
+
+一旦你理解了上述的过程，那么本章剩余内容就会十分简单~~
+
+下面介绍进程切换的具体细节。
+
+idle进程与scheduler
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+大家可能注意到proc.c文件中除了current_proc还记录了一个idle_proc。这个进程是干什么的呢？实际上，idle 进程是第一个进程(boot进程)，也是唯一一个永远会存在的进程，它还有一个大家更熟悉的面孔，它就是 os 的 main 函数。
+
+.. code-block:: C
     :linenos:
-
-    // os/src/task/context.rs
-
-    #[repr(C)]
-    pub struct TaskContext {
-        ra: usize,
-        s: [usize; 12],
+    
+    void main() {
+        clean_bss();    // 清空 bss 段
+        trapinit();     // 开启中断
+        batchinit();    // 初始化 app_info_ptr 指针
+        procinit();     // 初始化线程池
+        // timerinit();    // 开启时钟中断，现在还没有
+        run_all_app();  // 加载所有用户程序
+        scheduler();    // 开始调度
     }
 
-这里面只保存了 ``ra`` 和被调用者保存的 ``s0~s11`` 。``ra`` 的保存很重要，它记录了 ``__switch`` 返回之后应该到哪里继续执行，从而在切换回来并 ``ret`` 之后能到正确的位置。而保存调用者保存的寄存器是因为，调用者保存的寄存器可以由编译器帮我们自动保存。我们会将这段汇编代码中的全局符号 ``__switch`` 解释为一个 Rust 函数：
+可以看到，在main函数完成了一系列的初始化，并且执行了run_all_app加载完了所有测例之后。它就进入了scheduler调度函数。这个函数就完成了一系列的调度工作：
 
-.. code-block:: rust
+.. code-block:: C
     :linenos:
+    
+    void
+    scheduler(void)
+    {
+        struct proc *p;
 
-    // os/src/task/switch.rs
-
-    global_asm!(include_str!("switch.S"));
-
-    extern "C" {
-        pub fn __switch(
-            current_task_cx_ptr2: *const usize,
-            next_task_cx_ptr2: *const usize
-        );
+        for(;;){
+            for(p = pool; p < &pool[NPROC]; p++) {
+                if(p->state == RUNNABLE) {
+                    p->state = RUNNING;
+                    current_proc = p;
+                    swtch(&idle.context, &p->context);
+                }
+            }
+        }
     }
 
-我们会调用该函数来完成切换功能而不是直接跳转到符号 ``__switch`` 的地址。因此在调用前后 Rust 编译器会自动帮助我们插入保存/恢复调用者保存寄存器的汇编代码。
+可以看到一旦main进入调度状态就进入一个死循环再也回不去了。。但它也没必要回去，它现在活着的意义就是为了进行进程的调度。在循环中每一次idle进程都会遍历整个进程池来寻找RUNNABLE（就绪）状态的进程并执行swtch函数切换到它。我们这里的scheduler函数就是最普通的调度函数，完全没有考虑优先度以及复杂度。
 
-仔细观察的话可以发现 ``TaskContext`` 很像一个普通函数栈帧中的内容。正如之前所说， ``__switch`` 的实现除了换栈之外几乎就是一个普通函数，也能在这里得到体现。尽管如此，二者的内涵却有着很大的不同。
+这里大家要思考一下，这个函数写对了吗？它真的满足我们每次执行遍历一次的要求，而不是写成了每次都从第0个进程开始遍历查找吗？
 
-剩下的汇编代码就比较简单了。读者可以自行对照注释看看图示中的后面几个阶段各是如何实现的。另外，后面会出现传给 ``__switch`` 的两个参数相同，也就是某个 Trap 执行流自己切换到自己的情形，请读者对照图示思考目前的实现能否对它进行正确处理。
+yield，时钟中断与抢占式调度
 
-..
-  chyyuu：有一个内核态切换的例子。
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  
+我们的框架也支持协助式调度的yield函数。它的实现十分简单，本质就是调用了下面这个函数
+
+.. code-block:: C
+    :linenos:
+
+    // kernel/trap.c
+    void sched(void)
+    {
+        struct proc *p = curr_proc();
+        swtch(&p->context, &idle.context);
+    }
+
+它本质就是主动放弃执行，并把context移交给负责scheduler进程的idle进程。这样下一个执行的就不会是此进程了。
+
+我们思考一个问题，如果一个程序不放弃执行，那它直到结束之前就会一直执行。为了避免这个情况我们引入了抢占式调度的进程调度方式。这个方式使得有某种机制能够让当前进程的运行被打断。这个过程不能是应用程序自己导致的（不可控）。我们采用的策略就是时钟中断。
+
+timer.c 中包含了相关函数，功能分别为：打开了时钟中断使能，设置下一次中断间隔，读取当前的机器 cycle 数：
+
+.. code-block:: C
+    :linenos:
+
+    // kernel/timer.c
+
+    /// Enable timer interrupt
+    void timerinit() {
+        // Enable supervisor timer interrupt
+        w_sie(r_sie() | SIE_STIE);
+        set_next_timer();
+    }
+    /// Set the next timer interrupt
+    void set_next_timer() {
+        uint64 timebase = 125000;
+        set_timer(get_cycle() + timebase);
+    }
+
+    uint64 get_cycle() {
+        return r_time();
+    }
+
+我们通过设置时钟中断相关的寄存器开启了时钟中断。这样用户程序在执行的时候经过一个指定的时间片（我们这里是10ms)就会产生一个中断，从U态回到内核的S态。此时我们就可以执行内存的切换了:
+
+.. code-block:: C
+    :linenos:
+
+    void usertrap() {
+        // ...
+        uint64 cause = r_scause();
+        if(cause & (1ULL << 63)) {
+            cause &= ~(1ULL << 63);
+            switch(cause) {
+            case SupervisorTimer:
+                set_next_timer();
+                yield();
+                break;
+            default:
+                unknown_trap();
+                break;
+            }
+        } else {
+            // ....
+        }
+        usertrapret();
+    }
+
+可以看到如果应用程序进程是因为时间中断而陷入trap的话，OS就会调用yield让进程切换到scheduler的idle进程，达到进程调度的效果。当下一次回到此进程时，该进程会继续完成usertrap函数，并通过usertrapret函数回到U态继续执行。
+
+注意，为了避免混乱，在内核态我们屏蔽了所有的异常和中断。一旦内核出现问题OS会直接panic退出。这个直到lab7才会改变。
