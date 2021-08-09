@@ -207,6 +207,37 @@ system，其具体表现取决于实际的应用需求，各有优劣。
 
 由于分页内存管理既简单又灵活，它逐渐成为了主流，RISC-V 架构也使用了这种策略。后面我们会基于这种机制，自己来动手从物理内存抽象出应用的地址空间来。
 
+C的内存布局
+----------------------------------------------
+
+在memory_layout.h之中我们展示了内存的布局。
+
+.. code-block:: c
+    :linenos:
+
+    // the kernel expects there to be RAM
+    // for use by the kernel and user pages
+    // from physical address 0x80000000 to PHYSTOP.
+    #define KERNBASE 0x80200000L
+    #define PHYSTOP (0x80000000 + 128*1024*1024) // 128M
+
+    // map the trampoline page to the highest address,
+    // in both user and kernel space.
+
+    // one beyond the highest possible virtual address.
+    // MAXVA is actually one bit less than the max allowed by
+    // Sv39, to avoid having to sign-extend virtual addresses
+    // that have the high bit set.
+    #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
+
+    #define USER_TOP (MAXVA)
+    #define TRAMPOLINE (USER_TOP - PGSIZE)
+    #define TRAPFRAME (TRAMPOLINE - PGSIZE)
+
+    #define USTACK_BOTTOM (0x0)
+
+其中前两项在上一节已经介绍过了。下面的MAXVA其实就是SV39中最大的虚拟地址(39位全为1)。va不可能大于MAXVA。大家可以看到，我们指定TRAMPOLINE和TRAPFRAME在va的最高位，这是为什么呢？大家可以自行思考一下，我们将在下面解释。
+
 .. note::
 
     本节部分内容参考自 `Operating Systems: Three Easy Pieces <http://pages.cs.wisc.edu/~remzi/OSTEP/>`_ 
