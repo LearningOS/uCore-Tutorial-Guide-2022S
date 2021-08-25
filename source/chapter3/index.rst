@@ -10,5 +10,4 @@
    1multi-loader
    2task-switching
    3multiprogramming
-   4time-sharing-system
-   5exercise
+   4exercise
