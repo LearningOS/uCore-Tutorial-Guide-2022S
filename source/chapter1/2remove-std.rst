@@ -1,6 +1,6 @@
 .. _term-remove-std:
 
-makefile和qemu
+makefile 和 qemu
 ==========================
 
 .. toctree::
@@ -10,16 +10,21 @@ makefile和qemu
 本节导读
 -------------------------------
 
-为了帮助大家进一步理解我们的项目的链接和编译的过程，这里简要介绍一下我们makefile的工作机制。由于涉及到CI的判定，因此大家最好不要自己修改makefile。
+为了帮助大家进一步理解我们的项目的链接和编译的过程，这里简要介绍一下 makefile 的内容。
 
-makefile内部
+.. warning:: 
+
+   注意，makefile 在整个实验过程中不可修改，否则可能导致 CI 无法通过！
+
+
+makefile 内部
 ----------------------------------
 
 指定编译使用的工具
-
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-::
+.. code-block:: makefile
+
    TOOLPREFIX = riscv64-unknown-elf-
    CC = $(TOOLPREFIX)gcc
    AS = $(TOOLPREFIX)gas
@@ -31,10 +36,10 @@ makefile内部
 这里makefile调用了大家设定好的PATH之中的riscv64工具链。如果没有设置好，那么之后的编译就会因为找不到这些文件而出错。
 
 添加编译flag
-
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-::
+.. code-block:: makefile
+
    CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
    CFLAGS += -MD
    CFLAGS += -mcmodel=medany
@@ -42,21 +47,33 @@ makefile内部
    CFLAGS += -I.
    CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
-这里添加了编译的flag。比较需要注意的是我们设置了警告也会报错，因此大家写代码的时候最好避免warning的出现。
+比较需要注意的是我们设置了警告也会报错，因此大家写代码的时候最好避免 warning 的出现，这是良好的编程习惯。
 
-编译出目标文件以及qemu
-
+设置编译目标
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-::
-   kernel: $(OBJS) kernel.ld
+.. code-block:: makefile
+
+   # 目录定义
+   K = os
+   BUILDDIR = build
+   # .o 目标的确定，也就是 os 目录下所有的 .c 和 .s 都编译成 .o
+   C_SRCS = $(wildcard $K/*.c)
+   AS_SRCS = $(wildcard $K/*.S)
+   C_OBJS = $(addprefix $(BUILDDIR)/, $(addsuffix .o, $(basename $(C_SRCS))))
+   AS_OBJS = $(addprefix $(BUILDDIR)/, $(addsuffix .o, $(basename $(AS_SRCS))))
+   OBJS = $(C_OBJS) $(AS_OBJS)
+   # kernel 镜像由所有的 .o 按照 kernel.ld 链接而成
+   $(BUILDDIR)/kernel: $(OBJS) $(K)/kernel.ld
       $(LD) $(LDFLAGS) -T kernel.ld -o kernel $(OBJS)
+   
+请同学们自行查阅并了解``wildcard``、``addprefix``、``addsuffix``、``basename``的意义。
 
-   clean: 
-      rm -f *.o *.d kernel
+运行 qemu
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-上面两个是编译的选项。可以使用make + name 来调用它们。比较常用的就是make clean，可以清除所有生成出来的 .o以及.d中间文件和生成的kernel。
-::
+.. code-block:: makefile
+
    QEMU = qemu-system-riscv64
    QEMUOPTS = \
       -nographic \
@@ -65,19 +82,24 @@ makefile内部
       -bios $(BOOTLOADER) \
       -kernel kernel
 
-   run: kernel
-	$(QEMU) $(QEMUOPTS)
+   run: $(BUILDDIR)/kernel
+   $(QEMU) $(QEMUOPTS)
 
-这个就是最关键的地方:make run。我们查看这条指令的结构，它首先执行上面kernel所需要的链接以及编译操作得到一个二进制的kernel。之后执行按照QEMUOPTS变量指定的参数启动qemu。那么QEMUOPTS之中的flag有什么意义呢？
+这个就是最关键的地方:make run。我们查看这条指令的结构，它首先执行上面 kernel 所需要的链接以及编译操作得到一个二进制的kernel。之后执行按照QEMUOPTS变量指定的参数启动qemu。QEMUOPTS意义如下：
+
 - nographic: 无图形界面
-- smp 1: 单核
+- smp 1: 单核 (默认值，可以省略)
 - machine virt: 模拟硬件 RISC-V VirtIO Board
-- bios ...: 使用制定 bios，这里指向的是我们提供的rustsbi的bin文件。
-- device loader ...: 增加 loader 类型的 device,　这里其实就是把我们的 os 文件放到指定位置。
+- bios $(bios): 使用制定 bios，这里指向的是我们提供的 rustsbi 的bin文件。
+- kernel： 使用 elf 格式的 kernel。
+  
 因此qemu会按照上述的参数启动，使用我们的rustsbi来进行一系列初始化，并将程序计数器移动至0x80200000并开始执行我们的OS。我们之后所有执行测试都是使用的make run指令。
 
-下面是使用gdb需要的指令，本章也会使用到这些指令。
-::
+gdb 调试
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: makefile
+
    # QEMU's gdb stub command line changed in 0.11
    QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
       then echo "-gdb tcp::1234"; \
@@ -88,4 +110,22 @@ makefile内部
       sleep 1
       $(GDB)
 
-使用make debug来使用gdb调试qemu。程序自身执行的机制和直接make run一样。在解析bootloader的行为时可以使用gdb在其中添加断点来查看对应寄存器和内存的内容。gdb的具体使用方法和汇编课程上一致。不熟悉的同学可以在训练章节查看到可能用到的gdb指令的用法。
+使用 make debug 来使用 gdb 调试 qemu。程序自身执行的机制和直接 make run 一样。在解析 bootloader 的行为时可以使用 gdb 在其中添加断点来查看对应寄存器和内存的内容。gdb的具体使用方法和汇编课程上一致。不熟悉的同学可以在训练章节查看到可能用到的gdb指令的简单用法，也十分推荐同学们自学一些基础的 gdb 使用方法，掌握　gdb 对本课程帮助很大。
+
+LOG 支持
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code-block:: makefile
+
+   ifeq ($(LOG), error)
+   CFLAGS += -D LOG_LEVEL_ERROR
+   else ifeq ($(LOG), warn)
+   CFLAGS += -D LOG_LEVEL_WARN
+   else ifeq ($(LOG), info)
+   CFLAGS += -D LOG_LEVEL_INFO
+   else ifeq ($(LOG), debug)
+   CFLAGS += -D LOG_LEVEL_DEBUG
+   else ifeq ($(LOG), trace)
+   CFLAGS += -D LOG_LEVEL_TRACE
+   endif
+
+我们的 log 等级选择是通过 -D 参数来实现的，这也是大家 ``make run LOG=xxx`` 的原理。从这里我们也可以看到 ``LOG`` 的可选值。

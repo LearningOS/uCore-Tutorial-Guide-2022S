@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'rCore-Tutorial-Book-v3'
+project = 'uCore-Tutorial-Book-v2'
 copyright = '2020, Yifan Wu'
 author = 'Yifan Wu'
 language = 'zh_CN'
