@@ -44,7 +44,7 @@ exec会调用bin_loader,将对应文件名的测例加载到指定的进程p之�
 .. code-block:: c
     :linenos:
 
-    // kernel/loader.c
+    // os/loader.c
     int run_all_app() {
         struct proc *p = allocproc();
         p->parent = 0;

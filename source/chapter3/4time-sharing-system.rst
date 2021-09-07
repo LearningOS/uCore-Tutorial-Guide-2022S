@@ -43,9 +43,6 @@
 简单起见，本书中我们使用 **时间片轮转算法** (RR, Round-Robin) 来对应用进行调度，只要对它进行少许拓展就能完全满足我们续的需求。本章中我们仅需要最原始的 RR 算法，用文字描述的话就是维护一个任务队列，每次从队头取出一个应用执行一个时间片，然后把它丢到队尾，再继续从队头取出一个应用，以此类推直到所有的应用执行完毕。
 
 
-本节的代码可以在 ``ch3`` 分支上找到。
-
-
 RISC-V 架构中的中断
 -----------------------------------
 
@@ -157,87 +154,99 @@ RISC-V 的中断可以分成三类：
 
 可惜的是，它们都是 M 特权级的 CSR ，而我们的内核处在 S 特权级，是不被硬件允许直接访问它们的。好在运行在 M 特权级的 SEE 已经预留了相应的接口，我们可以调用它们来间接实现计时器的控制：
 
-.. code-block:: rust
+.. code-block:: c
 
-    // os/src/timer.rs
+    // os/timer.c
 
-    use riscv::register::time;
-
-    pub fn get_time() -> usize {
-        time::read()
+    /// read the `mtime` regiser
+    uint64 get_cycle()
+    {
+        return r_time();
     }
 
-``timer`` 子模块的 ``get_time`` 函数可以取得当前 ``mtime`` 计数器的值；
+
+``timer.c`` 子模块的 ``get_cycle`` 函数可以取得当前 ``mtime`` 计数器的值；
 
 .. code-block:: rust
     :linenos:
 
-    // os/src/sbi.rs
+    // os/sbi.c
 
-    const SBI_SET_TIMER: usize = 0;
-
-    pub fn set_timer(timer: usize) {
-        sbi_call(SBI_SET_TIMER, timer, 0, 0);
+    void set_timer(uint64 stime)
+    {
+        sbi_call(SBI_SET_TIMER, stime, 0, 0);
     }
 
-    // os/src/timer.rs
+    // os/timer.c
 
-    use crate::config::CLOCK_FREQ;
-    const TICKS_PER_SEC: usize = 100;
+    #define TICKS_PER_SEC (100)
+    #define CPU_FREQ (12500000)
 
-    pub fn set_next_trigger() {
-        set_timer(get_time() + CLOCK_FREQ / TICKS_PER_SEC);
+    /// Set the next timer interrupt
+    void set_next_timer()
+    {
+        const uint64 timebase = CPU_FREQ / TICKS_PER_SEC;
+        set_timer(get_cycle() + timebase);
     }
 
-- 代码片段第 5 行， ``sbi`` 子模块有一个 ``set_timer`` 调用，是一个由 SEE 提供的标准 SBI 接口函数，它可以用来设置 ``mtimecmp`` 的值。
-- 代码片段第 14 行， ``timer`` 子模块的 ``set_next_trigger`` 函数对 ``set_timer`` 进行了封装，它首先读取当前 ``mtime`` 的值，然后计算出 10ms 之内计数器的增量，再将 ``mtimecmp`` 设置为二者的和。这样，10ms 之后一个 S 特权级时钟中断就会被触发。
+- ``sbi.c`` 有一个 ``set_timer`` 调用，是一个由 SEE 提供的标准 SBI 接口函数，它可以用来设置 ``mtimecmp`` 的值。
+- ``timer.c`` 的 ``set_next_trigger`` 函数对 ``set_timer`` 进行了封装，它首先读取当前 ``mtime`` 的值，然后计算出 10ms(也就是一个tick) 之内计数器的增量，再将 ``mtimecmp`` 设置为二者的和。这样，10ms 之后一个 S 特权级时钟中断就会被触发。
 
-  至于增量的计算方式， ``CLOCK_FREQ`` 是一个预先获取到的各平台不同的时钟频率，单位为赫兹，也就是一秒钟之内计数器的增量。它可以在 ``config`` 子模块中找到。10ms 的话只需除以常数 ``TICKS_PER_SEC`` 也就是 100 即可。
+  至于增量的计算方式， ``CLOCK_FREQ`` 是一个预先获取到的各平台不同的时钟频率，单位为赫兹，也就是一秒钟之内计数器的增量, 10ms 的话只需除以常数 ``TICKS_PER_SEC`` 也就是 100 即可。
 
-后面可能还有一些计时的操作，比如统计一个应用的运行时长的需求，我们再设计一个函数：
+syscall 实现
+----------------------------------------------
 
-.. code-block:: rust
+既然引入了 time 模块，我们也顺势实现了 time 有关的一个系统调用 gettimeofday:
 
-    // os/src/timer.rs
+.. code-block:: c 
+    
+    typedef struct {
+        uint64 sec; // 自 Unix 纪元起的秒数
+        uint64 usec; // 微秒数，也就是秒的小数点后的内容
+    } TimeVal;
 
-    const MSEC_PER_SEC: usize = 1000;
-
-    pub fn get_time_ms() -> usize {
-        time::read() / (CLOCK_FREQ / MSEC_PER_SEC)
+    /// tz 参数表示时区，这里我们忽略这个参数
+    uint64 sys_gettimeofday(TimeVal *val, int _tz)
+    {
+        uint64 cycle = get_cycle();
+        val->sec = cycle / CPU_FREQ;
+        val->usec = (cycle % CPU_FREQ) * 1000000 / CPU_FREQ;
+        return 0;
     }
 
-``timer`` 子模块的 ``get_time_ms`` 可以以毫秒为单位返回当前计数器的值，这让我们终于能对时间有一个具体概念了。实现原理就不再赘述。
+我们只需要把 get_cycle 得到的 cycle 数换算了秒和微妙，填入对应结构即可。
 
-我们也新增一个系统调用方便应用获取当前的时间，以毫秒为单位：
+syscall 标准定义如下：
 
-.. code-block:: rust
+.. code-block:: c
     :caption: 第三章新增系统调用（二）
 
-    /// 功能：获取当前的时间，以毫秒为单位。
-    /// 返回值：返回当前的时间，以毫秒为单位。
+    /// 功能：获取当前的时间，填写 TimeVal 结构体
+    /// 返回值：始终为 0
     /// syscall ID：169
-    fn sys_get_time() -> isize;
-
-它在内核中的实现只需调用 ``get_time_ms`` 函数即可。
-
+    int sys_gettimeofday(TimeVal *val, int tz)
 
 抢占式调度
 -----------------------------------
 
 有了时钟中断和计时器，抢占式调度就很容易实现了：
 
-.. code-block:: rust
+.. code-block:: c
 
-    // os/src/trap/mod.rs
-
-    match scause.cause() {
-        Trap::Interrupt(Interrupt::SupervisorTimer) => {
-            set_next_trigger();
-            suspend_current_and_run_next();
+    void usertrap() {
+        // ...
+        switch(cause) {
+        case SupervisorTimer:
+            set_next_timer();
+            yield();
+            break;
+        // ...
         }
     }
 
-我们只需在 ``trap_handler`` 函数下新增一个分支，当发现触发了一个 S 特权级时钟中断的时候，首先重新设置一个 10ms 的计时器，然后调用上一小节提到的 ``suspend_current_and_run_next`` 函数暂停当前应用并切换到下一个。
+
+我们只需在 ``usertrap`` 函数下新增一个分支，当发现触发了一个 S 特权级时钟中断的时候，首先重新设置一个 10ms 的计时器，然后调用上一小节提到的 ``yield`` 函数暂停当前应用并切换到下一个。
 
 为了避免 S 特权级时钟中断被屏蔽，我们需要在执行第一个应用之前进行一些初始化设置：
 
@@ -249,53 +258,44 @@ RISC-V 的中断可以分成三类：
 
     #[no_mangle]
     pub fn rust_main() -> ! {
-        clear_bss();
-        println!("[kernel] Hello, world!");
-        trap::init();
-        loader::load_apps();
-        trap::enable_timer_interrupt();
-        timer::set_next_trigger();
-        task::run_first_task();
-        panic!("Unreachable in rust_main!");
+        // ...
+        timer_init();
+        // ...
     }
 
-    // os/src/trap/mod.rs
+    // os/trap.c
 
-    use riscv::register::sie;
-
-    pub fn enable_timer_interrupt() {
-        unsafe { sie::set_stimer(); }
+    /// Enable timer interrupt
+    void timer_init()
+    {
+        // 设置 ``sie.stie`` 使得 S 特权级时钟中断不会被屏蔽；
+        w_sie(r_sie() | SIE_STIE);
+        // 设置第一个 10ms 的计时器。
+        set_next_timer();
     }
 
-- 第 9 行设置了 ``sie.stie`` 使得 S 特权级时钟中断不会被屏蔽；
-- 第 10 行则是设置第一个 10ms 的计时器。
-
-这样，当一个应用运行了 10ms 之后，一个 S 特权级时钟中断就会被触发。由于应用运行在 U 特权级，且 ``sie`` 寄存器被正确设置，该中断不会被屏蔽，而是 Trap 到 S 特权级内的我们的 ``trap_handler`` 里面进行处理，并顺利切换到下一个应用。这便是我们所期望的抢占式调度机制。从应用运行的结果也可以看出，三个 ``power`` 系列应用并没有进行 yield ，而是由内核负责公平分配它们执行的时间片。
+这样，当一个应用运行了 10ms 之后，一个 S 特权级时钟中断就会被触发。由于应用运行在 U 特权级，且 ``sie`` 寄存器被正确设置，该中断不会被屏蔽，而是 Trap 到 S 特权级内的我们的 ``trap_handler`` 里面进行处理，并顺利切换到下一个应用。这便是我们所期望的抢占式调度机制。
 
 目前在等待某些事件的时候仍然需要 yield ，其中一个原因是为了节约 CPU 计算资源，另一个原因是当事件依赖于其他的应用的时候，由于只有一个 CPU ，当前应用的等待可能永远不会结束。这种情况下需要先将它切换出去，使得其他的应用到达它所期待的状态并满足事件的生成条件，再切换回来。
 
 .. _term-busy-loop:
 
-这里我们先通过 yield 来优化 **轮询** (Busy Loop) 过程带来的 CPU 资源浪费。在 ``03sleep`` 这个应用中：
+这里我们先通过 yield 来优化 **轮询** (Busy Loop) 过程带来的 CPU 资源浪费。在 ``ch3b_sleep.c`` 这个应用中：
 
 .. code-block:: rust
 
-    // user/src/bin/03sleep.rs
+    // user/src/ch3b_sleep.c
 
-    #[no_mangle]
-    fn main() -> i32 {
-        let current_timer = get_time();
-        let wait_for = current_timer + 3000;
-        while get_time() < wait_for {
-            yield_();
+    int main()
+    {
+        // get_mtime() 是 gettimeofday 的封装，得到毫秒数。
+        int64 current_time = get_mtime();
+        int64 wait_for = current_time + 3000;
+        while (get_mtime() < wait_for) {
+            sched_yield();
         }
-        println!("Test sleep OK!");
-        0
+        puts("Test sleep OK!");
+        return 0;
     }
 
-它的功能是等待 3000ms 然后退出。可以看出，我们会在循环里面 ``yield_`` 来主动交出 CPU 而不是无意义的忙等。尽管我们不这样做，已有的抢占式调度还是会在它循环 10ms 之后切换到其他应用，但是这样能让内核给其他应用分配更多的 CPU 资源并让它们更早运行结束。
-
-三叠纪“腔骨龙”抢占式操作系统
----------------------------------
-
-简介与画图！！！
+它的功能是等待 3000ms 然后退出。可以看出，我们会在循环里面 ``sched_yield()`` 来主动交出 CPU 而不是无意义的忙等。尽管我们不这样做，已有的抢占式调度还是会在它循环 10ms 之后切换到其他应用，但是这样能让内核给其他应用分配更多的 CPU 资源并让它们更早运行结束。

@@ -18,12 +18,14 @@ chapter1练习
 -------------------------------
 无
 
+.. ch1问答作业::
+
 问答作业
 -------------------------------
 
 1. 请学习 gdb 调试工具的使用(这对后续调试很重要)，并通过 gdb 简单跟踪从机器加电到跳转到 0x80200000 的简单过程。只需要描述重要的跳转即可，只需要描述在 qemu 上的情况。
 
-2. tips: 
+tips: 
 
   - 事实上进入 rustsbi 之后就不需要使用 gdb 调试了。可以直接阅读代码。`rustsbi起始代码 <https://github.com/rustsbi/rustsbi-qemu/blob/main/rustsbi-qemu/src/main.rs#L146>`_ 。
   - 可以使用示例代码 Makefile 中的 ``make debug`` 指令。

@@ -67,142 +67,63 @@
 
 .. code-block:: console
 
-   $ cd os
-   $ make run
+   $ make test BASE=1
 
-将 Maix 系列开发板连接到 PC，并在上面运行本章代码：
-
-.. code-block:: console
-
-   $ cd os
-   $ make run BOARD=k210
-
-如果顺利的话，我们将看到和上一章相同的运行结果（以 K210 平台为例）：
-
-.. code-block::
-
-   [rustsbi] RustSBI version 0.1.1
-   .______       __    __      _______.___________.  _______..______   __
-   |   _  \     |  |  |  |    /       |           | /       ||   _  \ |  |
-   |  |_)  |    |  |  |  |   |   (----`---|  |----`|   (----`|  |_)  ||  |
-   |      /     |  |  |  |    \   \       |  |      \   \    |   _  < |  |
-   |  |\  \----.|  `--'  |.----)   |      |  |  .----)   |   |  |_)  ||  |
-   | _| `._____| \______/ |_______/       |__|  |_______/    |______/ |__|
-
-   [rustsbi] Platform: K210 (Version 0.1.0)
-   [rustsbi] misa: RV64ACDFIMSU
-   [rustsbi] mideleg: 0x22
-   [rustsbi] medeleg: 0x1ab
-   [rustsbi] Kernel entry: 0x80020000
-   [kernel] Hello, world!
-   .text [0x80020000, 0x8002b000)
-   .rodata [0x8002b000, 0x8002e000)
-   .data [0x8002e000, 0x8004c000)
-   .bss [0x8004c000, 0x8035d000)
-   mapping .text section
-   mapping .rodata section
-   mapping .data section
-   mapping .bss section
-   mapping physical memory
-   [kernel] back to world!
-   remap_test passed!
-   init TASK_MANAGER
-   num_app = 4
-   power_3 [10000/300000power_5 [10000/210000]
-   power_5 [20000/210000]
-   power_5 [30000/210000]
-   
-   ...
-   
-   (mod 998244353)
-   Test power_7 OK!
-   [kernel] Application exited with code 0
-   power_3 [290000/300000]
-   power_3 [300000/300000]
-   3^300000 = 612461288(mod 998244353)
-   Test power_3 OK!
-   [kernel] Application exited with code 0
-   Test sleep OK!
-   [kernel] Application exited with code 0
-   [kernel] Panicked at src/task/mod.rs:112 All applications completed!
-   [rustsbi] reset triggered! todo: shutdown all harts on k210; program halt. Type: 0, reason: 0
 
 本章代码树
 -----------------------------------------------------
 
-.. code-block::
-  :linenos:
-  :emphasize-lines: 56
+.. code-block:: bash
 
-  ./os/src
-  Rust        22 Files    1334 Lines
-  Assembly     3 Files      88 Lines
+   :linenos:
+   :emphasize-lines: 56
 
-  ├── bootloader
-  │   ├── rustsbi-k210.bin
-  │   └── rustsbi-qemu.bin
-  ├── LICENSE
-  ├── os
-  │   ├── build.rs
-  │   ├── Cargo.lock
-  │   ├── Cargo.toml
-  │   ├── Makefile
-  │   └── src
-  │       ├── config.rs(修改：新增一些内存管理的相关配置)
-  │       ├── console.rs
-  │       ├── entry.asm
-  │       ├── lang_items.rs
-  │       ├── link_app.S
-  │       ├── linker-k210.ld(修改：将跳板页引入内存布局)
-  │       ├── linker-qemu.ld(修改：将跳板页引入内存布局)
-  │       ├── loader.rs(修改：仅保留获取应用数量和数据的功能)
-  │       ├── main.rs(修改)
-  │       ├── mm(新增：内存管理的 mm 子模块)
-  │       │   ├── address.rs(物理/虚拟 地址/页号的 Rust 抽象)
-  │       │   ├── frame_allocator.rs(物理页帧分配器)
-  │       │   ├── heap_allocator.rs(内核动态内存分配器)
-  │       │   ├── memory_set.rs(引入地址空间 MemorySet 及逻辑段 MemoryArea 等)
-  │       │   ├── mod.rs(定义了 mm 模块初始化方法 init)
-  │       │   └── page_table.rs(多级页表抽象 PageTable 以及其他内容)
-  │       ├── sbi.rs
-  │       ├── syscall
-  │       │   ├── fs.rs(修改：基于地址空间的 sys_write 实现)
-  │       │   ├── mod.rs
-  │       │   └── process.rs
-  │       ├── task
-  │       │   ├── context.rs(修改：构造一个跳转到不同位置的初始任务上下文)
-  │       │   ├── mod.rs(修改，详见文档)
-  │       │   ├── switch.rs
-  │       │   ├── switch.S
-  │       │   └── task.rs(修改，详见文档)
-  │       ├── timer.rs
-  │       └── trap
-  │           ├── context.rs(修改：在 Trap 上下文中加入了更多内容)
-  │           ├── mod.rs(修改：基于地址空间修改了 Trap 机制，详见文档)
-  │           └── trap.S(修改：基于地址空间修改了 Trap 上下文保存与恢复汇编代码)
-  ├── README.md
-  ├── rust-toolchain
-  ├── tools
-  │   ├── kflash.py
-  │   ├── LICENSE
-  │   ├── package.json
-  │   ├── README.rst
-  │   └── setup.py
-  └── user
-      ├── build.py(移除)
-      ├── Cargo.toml
-      ├── Makefile
-      └── src
-          ├── bin
-          │   ├── 00power_3.rs
-          │   ├── 01power_5.rs
-          │   ├── 02power_7.rs
-          │   └── 03sleep.rs
-          ├── console.rs
-          ├── lang_items.rs
-          ├── lib.rs
-          ├── linker.ld(修改：将所有应用放在各自地址空间中固定的位置)
-          └── syscall.rs
+   .
+   ├── bootloader
+   │   └── rustsbi-qemu.bin
+   ├── LICENSE
+   ├── Makefile
+   ├── os
+   │   ├── console.c
+   │   ├── console.h
+   │   ├── const.h
+   │   ├── defs.h
+   │   ├── entry.S
+   │   ├── kalloc.c
+   │   ├── kalloc.h
+   │   ├── kernel.ld
+   │   ├── kernelld.py
+   │   ├── loader.c
+   │   ├── loader.h
+   │   ├── log.h
+   │   ├── main.c
+   │   ├── pack.py
+   │   ├── printf.c
+   │   ├── printf.h
+   │   ├── proc.c
+   │   ├── proc.h
+   │   ├── riscv.h
+   │   ├── sbi.c
+   │   ├── sbi.h
+   │   ├── string.c
+   │   ├── string.h
+   │   ├── switch.S
+   │   ├── syscall.c
+   │   ├── syscall.h
+   │   ├── syscall_ids.h
+   │   ├── timer.c
+   │   ├── timer.h
+   │   ├── trampoline.S
+   │   ├── trap.c
+   │   ├── trap.h
+   │   ├── types.h
+   │   ├── vm.c
+   │   └── vm.h
+   ├── README.md
+   ├── scripts
+   │   ├── kernelld.py
+   │   └── pack.py
+   └── user
 
 
 

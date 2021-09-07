@@ -43,7 +43,7 @@ fork 系统调用
 
 .. code-block:: c
 
-    // kernel/proc.c
+    // os/proc.c
     struct proc {
         enum procstate state;     
         int pid;                   

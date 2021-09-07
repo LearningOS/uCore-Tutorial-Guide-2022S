@@ -37,65 +37,62 @@ kalloc之中的动态内存分配
 我们采用链表结构记录空闲的物理地址。因此当应用程序申请一段动态内存的时候，只需要把链表头所指向地址拿出即可。
 
 .. code-block:: c
-    :linenos:
 
-  // os/kalloc.c
-  struct linklist {
-      struct linklist *next;
-  };
+    // os/kalloc.c
+    struct linklist {
+        struct linklist *next;
+    };
 
-  struct {
-      struct linklist *freelist;
-  } kmem;
+    struct {
+        struct linklist *freelist;
+    } kmem;
 
 注意，我们的管理仅仅在页这个粒度进行，所以所有的地址必须是 PAGE_SIZE 对齐的。
 
 .. code-block:: c
-    :linenos:
 
-  // os/kalloc.c: 页面分配
-  void *
-  kalloc(void)
-  {
-      struct linklist *l;
-      l = kmem.freelist;
-      kmem.freelist = l->next;
-      return (void*)l;
-  }
+    // os/kalloc.c: 页面分配
+    void *
+    kalloc(void)
+    {
+        struct linklist *l;
+        l = kmem.freelist;
+        kmem.freelist = l->next;
+        return (void*)l;
+    }
 
-  // os/kalloc.c: 页面释放
-  void *
-  kfree(void *pa)
-  {
-      struct linklist *l;
-      l = (struct linklist*)pa;
-      l->next = kmem.freelist;
-      kmem.freelist = l;
-  }
+    // os/kalloc.c: 页面释放
+    void *
+    kfree(void *pa)
+    {
+        struct linklist *l;
+        l = (struct linklist*)pa;
+        l->next = kmem.freelist;
+        kmem.freelist = l;
+    }
 
 那么我们的内核有那些空闲内存需要管理呢？事实上，qemu 已经规定了内核需要管理的内存范围，可以参考这里，具体来说，需要软件管理的内存为 [0x80000000, 0x88000000)，其中，rustsbi 使用了 [0x80000000, 0x80200000) 的范围，其余都是内核使用。来看看 kmem 的初始化
 
 .. code-block:: c
-    :linenos:
 
-  // kernel/kalloc.c
+    // os/kalloc.c
 
-  // ekernel 为链接脚本定义的内核代码结束地址，PHYSTOP = 0x88000000
-  void
-  kinit()
-  {
-      freerange(ekernel, (void*)PHYSTOP);
-  }
+    // ekernel 为链接脚本定义的内核代码结束地址，PHYSTOP = 0x88000000
+    void
+    kinit()
+    {
+        freerange(ekernel, (void*)PHYSTOP);
+    }
 
-  // kfree [pa_start, pa_end)
-  void
-  freerange(void *pa_start, void *pa_end)
-  {
-      char *p;
-      p = (char*)PGROUNDUP((uint64)pa_start);
-      for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
-          kfree(p);
-  }
+    // kfree [pa_start, pa_end)
+    void
+    freerange(void *pa_start, void *pa_end)
+    {
+        char *p;
+        p = (char*)PGROUNDUP((uint64)pa_start);
+        for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
+            kfree(p);
+    }
 
 我们在main函数中会执行kinit，它会初始化从ekernel到PHYSTOP的所有物理地址作为空闲的物理地址。freerange中调用的kfree函数以页为单位向对应内存中填入垃圾数据（全1），并把初始化好的一个页作为新的空闲listnode插入到链表首部。
 

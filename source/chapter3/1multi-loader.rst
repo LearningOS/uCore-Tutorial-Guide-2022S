@@ -19,12 +19,12 @@
 多道程序加载
 ----------------------------
 
-从本章开始不再使用上一章批处理操作系统的run_next_app函数。让我们看看batch.c文件之中修改了什么。
+从本章开始不再使用上一章批处理操作系统的run_next_app函数。让我们看看loader.c文件之中修改了什么。
 
 .. code-block:: c
    :linenos:
 
-    // kernel/batch.c
+    // os/loader.c
 
     int load_app(int n, uint64* info) {
         uint64 start = info[n], end = info[n+1], length = end - start;
@@ -33,15 +33,17 @@
         return length;
     }
 
-    int run_all_app() {
-        for(int i = 0; i < app_num; ++i) {
-            struct proc* p = allocproc();    // 分配一个进程控制块
-            struct trapframe* trapframe = p->trapframe;
-            printf("run app %d\n", i);
+    // load all apps and init the corresponding `proc` structure.
+    // 这个函数的更过细节在之后讲解
+    int run_all_app()
+    {
+        for (int i = 0; i < app_num; ++i) {
+            struct proc *p = allocproc();
+            struct trapframe *trapframe = p->trapframe;
             load_app(i, app_info_ptr);
-            uint64 entry = BASE_ADDRESS + i*MAX_APP_SIZE;
+            uint64 entry = BASE_ADDRESS + i * MAX_APP_SIZE;
             trapframe->epc = entry;
-            trapframe->sp = (uint64) p->ustack + PAGE_SIZE;
+            trapframe->sp = (uint64)p->ustack + USER_STACK_SIZE;
             p->state = RUNNABLE;
         }
         return 0;

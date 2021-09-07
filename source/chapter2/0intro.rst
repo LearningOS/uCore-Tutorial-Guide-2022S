@@ -12,7 +12,7 @@
 - 通过批处理支持多个程序的自动加载和运行
 - 操作系统利用硬件特权级机制，实现对操作系统自身的保护
 
-上一章，我们在 RV64 裸机平台上成功运行起来了 ``Hello, world!``并成功实现了染色的过程 。看起来这个过程非常顺利，只需要一条命令就能全部完成。但实际上，在那个计算机刚刚诞生的年代，很多事情并不像我们想象的那么简单。 当时，程序被记录在打孔的卡片上，使用汇编语言甚至机器语言来编写。而稀缺且昂贵的计算机由专业的管理员负责操作，就和我们在上一章所做的事情一样，他们手动将卡片输入计算机，等待程序运行结束或者终止程序的运行。最后，他们从计算机的输出端——也就是打印机中取出程序的输出并交给正在休息室等待的程序提交者。
+上一章，我们在 RV64 裸机平台上成功运行起来了 ``Hello, world!`` 并成功实现了染色的过程 。看起来这个过程非常顺利，只需要一条命令就能全部完成。但实际上，在那个计算机刚刚诞生的年代，很多事情并不像我们想象的那么简单。当时，程序被记录在打孔的卡片上，使用汇编语言甚至机器语言来编写。而稀缺且昂贵的计算机由专业的管理员负责操作，就和我们在上一章所做的事情一样，他们手动将卡片输入计算机，等待程序运行结束或者终止程序的运行。最后，他们从计算机的输出端——也就是打印机中取出程序的输出并交给正在休息室等待的程序提交者。
 
 实际上，这样做是一种对于珍贵的计算资源的浪费。因为当时的计算机和今天的个人计算机不同，它的体积极其庞大，能够占满一整个空调房间，像巨大的史前生物。管理员在房间的各个地方跑来跑去、或是等待打印机的输出的这些时间段，计算机都并没有在工作。于是，人们希望计算机能够不间断的工作且专注于计算任务本身。
 
@@ -33,53 +33,50 @@
 实践体验
 ---------------------------
 
-本章我们的批处理系统将连续运行三个应用程序，放在 ``user/target/bin`` 目录下。
-
-获取本章代码：
+本章我们引入了用户程序，我们可以通过 ``make user`` 生成用户程序，最终将 ``.bin`` 文件放在 ``user/target/bin`` 目录下。
 
 .. code-block:: console
 
    $ git checkout ch2
 
-在 qemu 模拟器上运行本章代码：
-
 .. code-block:: console
 
-   $ cd os
+   $ make user BASE=1 CHAPTER=2
    $ make run
 
-将 Maix 系列开发板连接到 PC，并在上面运行本章代码：
+也可以直接运行打包好的测试程序。make test 会完成　make user 和 make run 两个步骤（自动设置 CHAPTER），我们可以通过 BASE 控制是否生成留做练习的测例。
 
 .. code-block:: console
 
-   $ cd os
-   $ make run BOARD=k210
+   $ make test BASE=1
+
+如果你发现自己的 user 目录是空的，这是由于在 clone 的时候没有增加 ``--recursive`` 参数导致 submodule 没有初始化。解决方案如下：
+
+.. code-block:: console
+
+   $ git submodule init 
+   $ git submodule update
 
 如果顺利的话，我们可以看到批处理系统自动加载并运行所有的程序并且正确在程序出错的情况下保护了自身：
 
-.. code-block:: 
+.. code-block:: bash
 
-   [rustsbi] RustSBI version 0.1.1
-   <rustsbi-logo>
+   .______       __    __      _______.___________.  _______..______   __
+   |   _  \     |  |  |  |    /       |           | /       ||   _  \ |  |
+   |  |_)  |    |  |  |  |   |   (----`---|  |----`|   (----`|  |_)  ||  |
+   |      /     |  |  |  |    \   \       |  |      \   \    |   _  < |  |
+   |  |\  \----.|  `--'  |.----)   |      |  |  .----)   |   |  |_)  ||  |
+   | _| `._____| \______/ |_______/       |__|  |_______/    |______/ |__|
+
    [rustsbi] Platform: QEMU (Version 0.1.0)
    [rustsbi] misa: RV64ACDFIMSU
    [rustsbi] mideleg: 0x222
    [rustsbi] medeleg: 0xb1ab
    [rustsbi-dtb] Hart count: cluster0 with 1 cores
    [rustsbi] Kernel entry: 0x80200000
-   [kernel] Hello, world!
-   [kernel] num_app = 3
-   [kernel] app_0 [0x8020b028, 0x8020c048)
-   [kernel] app_1 [0x8020c048, 0x8020d100)
-   [kernel] app_2 [0x8020d100, 0x8020e4b8)
-   [kernel] Loading app_0
-   Hello, world!
-   [kernel] Application exited with code 0
-   [kernel] Loading app_1
-   Into Test store_fault, we will insert an invalid store operation...
-   Kernel should kill this application!
-   [kernel] PageFault in application, core dumped.
-   [kernel] Loading app_2
+   hello wrold!
+   Hello world from user mode program!
+   Test hello_world OK!
    3^10000=5079
    3^20000=8202
    3^30000=8824
@@ -91,8 +88,13 @@
    3^90000=2621
    3^100000=2749
    Test power OK!
-   [kernel] Application exited with code 0
-   [kernel] Panicked at src/batch.rs:61 All applications completed!
+   string from data section
+   strinstring from stack section
+   strin
+   Test write1 OK!
+   ALL DONE
+
+可以看到 4 个基础测试程序都可以正常运行。
 
 本章代码导读
 -----------------------------------------------------
@@ -103,7 +105,7 @@
 
 应用程序运行中，操作系统要支持应用程序的输出功能，并还能支持应用程序退出。这需要完成 ``sys_write`` 和 ``sys_exit`` 系统调用访问请求的实现。 具体实现涉及到内联汇编的编写，以及应用与操作系统内核之间系统调用的参数传递的约定。为了让应用在还没实现操作系统之前就能进行运行测试，我们采用了Linux on RISC-V64 的系统调用参数约定。具体实现可参看 :ref:`系统调用 <term-call-syscall>` 小节中的内容。 这样写完应用小例子后，就可以通过  ``qemu-riscv64`` 模拟器进行测试了。  
 
-写完应用程序后，还需实现支持多个应用程序轮流启动运行的操作系统。这里首先能把本来相对松散的应用程序执行代码和操作系统执行代码连接在一起，便于   ``qemu-system-riscv64`` 模拟器一次性地加载二者到内存中，并让操作系统能够找到应用程序的位置。为把二者连在一起，需要对生成的应用程序进行改造，首先是把应用程序执行文件从ELF执行文件格式变成Binary格式（通过 ``rust-objcopy`` 可以轻松完成）；然后这些Binary格式的文件通过编译器辅助脚本 ``os/pack.py`` 生成 ``os/link_app.S`` 这个汇编文件，并生成各个Binary应用的辅助信息，便于操作系统能够找到应用的位置。同时，makefile也会调用另外一个脚本``os/kernellld.py``来生一个新的规定程序空间的kernel_app.ld取代之前的kernel.ld。编译器会把把操作系统的源码和 ``os/link_app.S`` 合在一起，编译出操作系统+Binary应用的ELF执行文件，并进一步转变成Binary格式。
+写完应用程序后，还需实现支持多个应用程序轮流启动运行的操作系统。这里首先能把本来相对松散的应用程序执行代码和操作系统执行代码连接在一起，便于   ``qemu-system-riscv64`` 模拟器一次性地加载二者到内存中，并让操作系统能够找到应用程序的位置。为把二者连在一起，需要对生成的应用程序进行改造，首先是把应用程序执行文件从ELF执行文件格式变成Binary格式（通过 ``rust-objcopy`` 可以轻松完成）；然后这些Binary格式的文件通过编译器辅助脚本 ``scripts/pack.py`` 生成 ``os/link_app.S`` 这个汇编文件，并生成各个Binary应用的辅助信息，便于操作系统能够找到应用的位置。同时，makefile也会调用另外一个脚本``scripts/kernellld.py``来生一个新的规定程序空间的kernel_app.ld取代之前的kernel.ld。编译器会把把操作系统的源码和 ``os/link_app.S`` 合在一起，编译出操作系统+Binary应用的ELF执行文件，并进一步转变成Binary格式。
 
 操作系统本身需要完成对Binary应用的位置查找，找到后（通过 ``os/link_app.S`` 中的变量和标号信息完成），会把Binary应用拷贝到 ``os/kernel_app.ld`` 指定的物理内存位置（OS的加载应用功能）。
 

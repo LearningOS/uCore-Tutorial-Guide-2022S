@@ -8,6 +8,7 @@
 
    0intro
    1multi-loader
-   2task-switching
+   2proc-basic
    3multiprogramming
-   4exercise
+   4time-sharing-system
+   5exercise

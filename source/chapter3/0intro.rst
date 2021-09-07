@@ -68,210 +68,82 @@
 
 .. code-block:: console
 
-   $ cd os
-   $ make run
+   $ make test BASE=1
 
-将 Maix 系列开发板连接到 PC，并在上面运行本章代码：
+多道程序的应用分别会输出一个不同的字母矩阵。当他们交替执行的时候，我们将看到字母行的交错输出：
 
-.. code-block:: console
+.. code-block::bash
 
-   $ cd os
-   $ make run BOARD=k210
-
-多道程序的应用分别会输出一个不同的字母矩阵。当他们交替执行的时候，以 k210 平台为例，我们将看到字母行的交错输出：
-
-.. code-block::
-
-   [rustsbi] Version 0.1.0
-   .______       __    __      _______.___________.  _______..______   __
-   |   _  \     |  |  |  |    /       |           | /       ||   _  \ |  |
-   |  |_)  |    |  |  |  |   |   (----`---|  |----`|   (----`|  |_)  ||  |
-   |      /     |  |  |  |    \   \       |  |      \   \    |   _  < |  |
-   |  |\  \----.|  `--'  |.----)   |      |  |  .----)   |   |  |_)  ||  |
-   | _| `._____| \______/ |_______/       |__|  |_______/    |______/ |__|
-
-   [rustsbi] Platform: K210
-   [rustsbi] misa: RV64ACDFIMSU
-   [rustsbi] mideleg: 0x222
-   [rustsbi] medeleg: 0x1ab
-   [rustsbi] Kernel entry: 0x80020000
-   [kernel] Hello, world!
    AAAAAAAAAA [1/5]
-   BBBBBBBBBB [1/2]
-   CCCCCCCCCC [1/3]
+   CCCCCCCCCC [1/5]
+   BBBBBBBBBB [1/5]
    AAAAAAAAAA [2/5]
-   BBBBBBBBBB [2/2]
-   CCCCCCCCCC [2/3]
+   CCCCCCCCCC [2/5]
+   BBBBBBBBBB [2/5]
    AAAAAAAAAA [3/5]
-   Test write_b OK!
-   [kernel] Application exited with code 0
-   CCCCCCCCCC [3/3]
+   CCCCCCCCCC [3/5]
+   BBBBBBBBBB [3/5]
    AAAAAAAAAA [4/5]
-   Test write_c OK!
-   [kernel] Application exited with code 0
+   CCCCCCCCCC [4/5]
+   BBBBBBBBBB [4/5]
    AAAAAAAAAA [5/5]
-   Test write_a OK!
-   [kernel] Application exited with code 0
-   [kernel] Panicked at src/task/mod.rs:97 All applications completed!
-   [rustsbi] reset triggered! todo: shutdown all harts on k210; program halt
-
-分时多任务系统应用分为两种。编号为 00/01/02 的应用分别会计算质数 3/5/7 的幂次对一个大质数取模的余数，并会将结果阶段性输出。编号为 03 的
-应用则会等待三秒钟之后再退出。以 k210 平台为例，我们将会看到 00/01/02 三个应用分段完成它们的计算任务，而应用 03 由于等待时间过长总是
-最后一个结束执行。
-
-.. code-block::
-
-   [rustsbi] RustSBI version 0.1.1
-   .______       __    __      _______.___________.  _______..______   __
-   |   _  \     |  |  |  |    /       |           | /       ||   _  \ |  |
-   |  |_)  |    |  |  |  |   |   (----`---|  |----`|   (----`|  |_)  ||  |
-   |      /     |  |  |  |    \   \       |  |      \   \    |   _  < |  |
-   |  |\  \----.|  `--'  |.----)   |      |  |  .----)   |   |  |_)  ||  |
-   | _| `._____| \______/ |_______/       |__|  |_______/    |______/ |__|
-
-   [rustsbi] Platform: K210 (Version 0.1.0)
-   [rustsbi] misa: RV64ACDFIMSU
-   [rustsbi] mideleg: 0x22
-   [rustsbi] medeleg: 0x1ab
-   [rustsbi] Kernel entry: 0x80020000
-   [kernel] Hello, world!
-   power_3 [10000/200000]
-   power_3 [20000/200000]
-   power_3 [30000/200000power_5 [10000/140000]
-   power_5 [20000/140000]
-   power_5 [30000/140000power_7 [10000/160000]
-   power_7 [20000/160000]
-   power_7 [30000/160000]
-   ]
-   power_3 [40000/200000]
-   power_3 [50000/200000]
-   power_3 [60000/200000]
-   power_5 [40000/140000]
-   power_5 [50000/140000]
-   power_5 [60000/140000power_7 [40000/160000]
-   power_7 [50000/160000]
-   power_7 [60000/160000]
-   ]
-   power_3 [70000/200000]
-   power_3 [80000/200000]
-   power_3 [90000/200000]
-   power_5 [70000/140000]
-   power_5 [80000/140000]
-   power_5 [90000/140000power_7 [70000/160000]
-   power_7 [80000/160000]
-   power_7 [90000/160000]
-   ]
-   power_3 [100000/200000]
-   power_3 [110000/200000]
-   power_3 [120000/]
-   power_5 [100000/140000]
-   power_5 [110000/140000]
-   power_5 [120000/power_7 [100000/160000]
-   power_7 [110000/160000]
-   power_7 [120000/160000200000]
-   power_3 [130000/200000]
-   power_3 [140000/200000]
-   power_3 [150000140000]
-   power_5 [130000/140000]
-   power_5 [140000/140000]
-   5^140000 = 386471875]
-   power_7 [130000/160000]
-   power_7 [140000/160000]
-   power_7 [150000/160000/200000]
-   power_3 [160000/200000]
-   power_3 [170000/200000]
-   power_3 [
-   Test power_5 OK!
-   [kernel] Application exited with code 0
-   ]
-   power_7 [160000/160000]
-   7180000/200000]
-   power_3 [190000/200000]
-   power_3 [200000/200000]
-   3^200000 = 871008973^160000 = 667897727
-   Test power_7 OK!
-   [kernel] Application exited with code 0
-
-   Test power_3 OK!
-   [kernel] Application exited with code 0
-   Test sleep OK!
-   [kernel] Application exited with code 0
-   [kernel] Panicked at src/task/mod.rs:98 All applications completed!
-   [rustsbi] reset triggered! todo: shutdown all harts on k210; program halt. Type: 0, reason: 0
-
-输出结果看上去有一些混乱，原因是用户程序的每个 ``println!`` 往往会被拆分成多个 ``sys_write`` 系统调用提交给内核。有兴趣的同学可以参考 ``println!`` 宏的实现。
+   CCCCCCCCCC [5/5]
+   BBBBBBBBBB [5/5]
+   Test write A OK!
+   Test write C OK!
+   Test write B OK!
 
 另外需要说明的是一点是：与上一章不同，应用的编号不再决定其被加载运行的先后顺序，而仅仅能够改变应用被加载到内存中的位置。
 
 本章代码树
 ---------------------------------------------
 
-.. code-block::
+.. code-block::bash
    :linenos:
    :emphasize-lines: 14
 
-   ./os/src
-   Rust        16 Files   481 Lines
-   Assembly     3 Files    84 Lines
-
+   .
    ├── bootloader
-   │   ├── rustsbi-k210.bin
-   │   └── rustsbi-qemu.bin
+   │   └── rustsbi-qemu.bin
    ├── LICENSE
+   ├── Makefile
    ├── os
-   │   ├── build.rs
-   │   ├── Cargo.toml
-   │   ├── Makefile
-   │   └── src
-   │       ├── batch.rs(移除：功能分别拆分到 loader 和 task 两个子模块)
-   │       ├── config.rs(新增：保存内核的一些配置)
-   │       ├── console.rs
-   │       ├── entry.asm
-   │       ├── lang_items.rs
-   │       ├── link_app.S
-   │       ├── linker-k210.ld
-   │       ├── linker-qemu.ld
-   │       ├── loader.rs(新增：将应用加载到内存并进行管理)
-   │       ├── main.rs(修改：主函数进行了修改)
-   │       ├── sbi.rs(修改：引入新的 sbi call set_timer)
-   │       ├── syscall(修改：新增若干 syscall)
-   │       │   ├── fs.rs
-   │       │   ├── mod.rs
-   │       │   └── process.rs
-   │       ├── task(新增：task 子模块，主要负责任务管理)
-   │       │   ├── context.rs(引入 Task 上下文 TaskContext)
-   │       │   ├── mod.rs(全局任务管理器和提供给其他模块的接口)
-   │       │   ├── switch.rs(将任务切换的汇编代码解释为 Rust 接口 __switch)
-   │       │   ├── switch.S(任务切换的汇编代码)
-   │       │   └── task.rs(任务控制块 TaskControlBlock 和任务状态 TaskStatus 的定义)
-   │       ├── timer.rs(新增：计时器相关)
-   │       └── trap
-   │           ├── context.rs
-   │           ├── mod.rs(修改：时钟中断相应处理)
-   │           └── trap.S
+   │   ├── console.c
+   │   ├── console.h
+   │   ├── const.h
+   │   ├── defs.h
+   │   ├── entry.S
+   │   ├── kernel.ld
+   │   ├── kernelld.py
+   │   ├── loader.c
+   │   ├── loader.h
+   │   ├── log.h
+   │   ├── main.c
+   │   ├── pack.py
+   │   ├── printf.c
+   │   ├── printf.h
+   │   ├── proc.c
+   │   ├── proc.h
+   │   ├── riscv.h
+   │   ├── sbi.c
+   │   ├── sbi.h
+   │   ├── string.c
+   │   ├── string.h
+   │   ├── switch.S
+   │   ├── syscall.c
+   │   ├── syscall.h
+   │   ├── syscall_ids.h
+   │   ├── timer.c
+   │   ├── timer.h
+   │   ├── trampoline.S
+   │   ├── trap.c
+   │   ├── trap.h
+   │   └── types.h
    ├── README.md
-   ├── rust-toolchain
-   ├── tools
-   │   ├── kflash.py
-   │   ├── LICENSE
-   │   ├── package.json
-   │   ├── README.rst
-   │   └── setup.py
+   ├── scripts
+   │   ├── kernelld.py
+   │   └── pack.py
    └── user
-      ├── build.py(新增：使用 build.py 构建应用使得它们占用的物理地址区间不相交)
-      ├── Cargo.toml
-      ├── Makefile(修改：使用 build.py 构建应用)
-      └── src
-         ├── bin(修改：换成第三章测例)
-         │   ├── 00power_3.rs
-         │   ├── 01power_5.rs
-         │   ├── 02power_7.rs
-         │   └── 03sleep.rs
-         ├── console.rs
-         ├── lang_items.rs
-         ├── lib.rs
-         ├── linker.ld
-         └── syscall.rs
 
 
 本章代码导读

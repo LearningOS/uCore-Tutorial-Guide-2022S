@@ -47,6 +47,7 @@ SV39多级页表机制：OS实现
 
 下面我们通过来解读我们OS的walk函数了解SV39的页表读取机制。
 .. code-block:: c
+
     :linenos:
 
     // os/vm.c
@@ -74,6 +75,7 @@ walk函数模拟了CPU进行MMU的过程。它的参数分别是页表，待转�
 SV39的转换是由3级页表结构完成。在riscv.h之中定义的宏函数PX完成了每一级从va转换到pte的过程:
 
 .. code-block:: c
+
     :linenos:
 
     #define PXMASK 0x1FF// 9 bits
@@ -90,6 +92,7 @@ SV39的转换是由3级页表结构完成。在riscv.h之中定义的宏函数PX
 walk函数是我们比较底层的一个函数，但也是所有遍历页表进行地址转换函数的基础。我们还实现了两个转换函数:
 
 .. code-block:: c
+
     :linenos:
 
     // Look up a virtual address, return the physical page,
@@ -134,6 +137,7 @@ mappages的perm是用于控制页表项的flags的。请注意它具体指向哪
 
 为了方便大家，我们预先准备了几个跨页表进行字符串数据交换的函数。
 .. code-block:: c
+
     :linenos:
 
     // Copy from kernel to user.
@@ -161,6 +165,7 @@ mappages的perm是用于控制页表项的flags的。请注意它具体指向哪
 开启页表之后，内核也需要进行映射处理。但是我们这里可以直接进行一一映射，也就是va经过MMU转换得到的pa就是va本身（但是转换过程还是会执行！）。内核需要能访问到所有的物理内存以处理频繁的操作不同进程内存的需求。内核页表建立过程在main函数之中调用。
 
 .. code-block:: c
+
     :linenos:
 
     #define PTE_V (1L << 0)     // valid
@@ -186,42 +191,69 @@ mappages的perm是用于控制页表项的flags的。请注意它具体指向哪
 用户页表的加载
 -----------------------------------
 
-用户的加载逻辑在 loader.c 中（也就是原来的 batch.c，改名了），其中唯一逻辑变化较大的就是 bin_loader 函数：
+用户的加载逻辑在 loader.c 中，其中唯一逻辑变化较大的就是 bin_loader 函数，请结合注释理解这个函数：
 
 .. code-block:: c
+
     :linenos:
 
-    // kernel/vm.c
-
-    // kernel/loader.c
-    pagetable_t bin_loader(uint64 start, uint64 end, struct proc *p) {
-        pagetable_t pg = (pagetable_t) kalloc();
-        memset(pg, 0, PGSIZE);
-        // trampoline 就是 uservec userret 两个函数的位置
-        mappages(pagetable, TRAMPOLINE, PGSIZE, (uint64)trampoline, PTE_R | PTE_X) < 0);
-        // trapframe 之前是预分配的，现在我们用 kalloc 得到。
-        p->trapframe = (struct trapframe*)kalloc();
-        memset(p->trapframe, 0, PGSIZE);
-        // map trapframe，位置稍后解释
-        mappages(pg, TRAPFRAME, PGSIZE, (uint64)p->trapframe, PTE_R | PTE_W);
-        // 这部分就是 bin 程序的实际 map, 我们把 [BASE_ADDRESS, APP_SIZE) map 到 [app_start, app_end)
-        // 替代了之前的拷贝
-        uint64 s = PGROUNDDOWN(start), e = PGROUNDUP(end);
-        if (mappages(pg, BASE_ADDRESS, e - s, s, PTE_U | PTE_R | PTE_W | PTE_X) != 0) {
-            panic("wrong loader 1\n");
+    pagetable_t bin_loader(uint64 start, uint64 end, struct proc *p)
+    {
+        // pg 代表根页表地址
+        pagetable_t pg;
+        // 根页表大小恰好为 1 个页
+        pg= (pagetable_t)kalloc();
+        if (pg == 0) {
+            errorf("uvmcreate: kalloc error");
+            return 0;
+        }
+        // 注意 kalloc() 分配的页为脏页，这里需要先清空。
+        memset(pagetable, 0, PGSIZE);
+        // 映射 trapoline（也就是 uservec 和 userret），注意这里的权限!
+        if (mappages(pagetable, TRAMPOLINE, PAGE_SIZE, (uint64)trampoline,
+                PTE_R | PTE_X) < 0) {
+            kfree(pagetable);
+            errorf("uvmcreate: mappages error");
+            return 0;
+        }
+        // 映射 trapframe（中断帧），注意这里的权限!
+        if (mappages(pg, TRAPFRAME, PGSIZE, (uint64)p->trapframe,
+                PTE_R | PTE_W) < 0) {
+            panic("mappages fail");
+        }
+        // 接下来映射用户实际地址空间，也就是把 physics address [start, end)
+        if (!PGALIGNED(start)) {
+            panic("user program not aligned, start = %p", start);
+        }
+        if (!PGALIGNED(end)) {
+            // Fix in ch5
+            warnf("Some kernel data maybe mapped to user, start = %p, end = %p",
+                start, end);
+        }
+        end = PGROUNDUP(end);
+        uint64 length = end - start;
+        if (mappages(pg, BASE_ADDRESS, length, start,
+                PTE_U | PTE_R | PTE_W | PTE_X) != 0) {
+            panic("mappages fail");
         }
         p->pagetable = pg;
+        uint64 ustack_bottom_vaddr = BASE_ADDRESS + length + PAGE_SIZE;
+        if (USTACK_SIZE != PAGE_SIZE) {
+            // Fix in ch5
+            panic("Unsupported");
+        }
+        mappages(pg, ustack_bottom_vaddr, USTACK_SIZE, (uint64)kalloc(),
+            PTE_U | PTE_R | PTE_W | PTE_X);
+        p->ustack = ustack_bottom_vaddr;
         p->trapframe->epc = BASE_ADDRESS;
-        // map user stack
-        mappages(pg, USTACK_BOTTOM, USTACK_SIZE, (uint64) kalloc(), PTE_U | PTE_R | PTE_W | PTE_X);
-        p->ustack = USTACK_BOTTOM;
         p->trapframe->sp = p->ustack + USTACK_SIZE;
+        p->max_page = PGROUNDUP(p->ustack + USTACK_SIZE - 1) / PAGE_SIZE;
         return pg;
     }
 
 这里大家也要注意，每一个测例进程都有一套自己的页表。因此在进程切换或者异常中断处理返回U态的时候需要设置satp的值为其对应的值才能使用正确的页表。具体的实现其实之前几章已经先做好了。
 
-我们需要重点关注一下trapframe 和 trampoline代码的位置。在前面两节我们看到了memory_layout文件。这两块内存用户特权级切换，必须用户态和内核态都能访问。所以它们在内核和用户页表中都有 map，注意所有 kalloc() 分配的内存内核都能访问，这是因为我们已经预先设置好页表了。
+我们需要重点关注一下trapframe 和 trampoline 代码的位置。在前面两节我们看到了memory_layout文件。这两块内存用户特权级切换，必须用户态和内核态都能访问。所以它们在内核和用户页表中都有 map，注意所有 kalloc() 分配的内存内核都能访问，这是因为我们已经预先设置好页表了。
 
 .. code-block:: c
     :linenos:
@@ -230,4 +262,4 @@ mappages的perm是用于控制页表项的flags的。请注意它具体指向哪
     #define TRAMPOLINE (USER_TOP - PGSIZE)
     #define TRAPFRAME (TRAMPOLINE - PGSIZE)
 
-这与为何要这么设定，留给读者思考。提示：这是去年期中试题之一。
+这与为何要这么设定，留给读者思考。

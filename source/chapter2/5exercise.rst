@@ -7,136 +7,65 @@ chapter2练习
 
 - 本节难度： **低** 
 
+本节任务
+-----------------------------------
+- 运行 ch2 分支的框架代码，确认 ``BASE=1``　时 os 运行正常。
+- 理解目前 os 加载用户程序的整体逻辑。在 ``user`` 目录下执行 ``make CHAPTER=2_bad``　生成三个会导致错误的程序，运行并描述他们导致的现象。完成问答作业第一题。
+- 阅读状态切换相关函数，思考并完成问答作业第二题。
+- 完成问答作业第三题。
+
 编程练习
 -------------------------------
+无
 
-简单安全检查
-+++++++++++++++++++++++++++++++
+.. ch2问答作业::
 
-lab2 中，我们实现了第一个系统调用 ``sys_write``，这使得我们可以在用户态输出信息。但是 os 在提供服务的同时，还有保护 os 本身以及其他用户程序不受错误或者恶意程序破坏的功能。
-
-由于还没有实现虚拟内存，我们可以在用户程序中指定一个属于其他程序字符串，并将它输出，这显然是不合理的，因此我们要对 sys_write 做检查：
-
-- sys_write 仅能输出位于程序本身内存空间内的数据，否则报错。
-
-实验要求
-+++++++++++++++++++++++++++++++
-- 实现分支: ch2。
-- 完成实验指导书中的内容，能运行用户态程序并执行 sys_write，sys_exit 系统调用。
-- 为 sys_write 增加安全性检查，并通过 `Rust测例 <https://github.com/DeathWish5/rCore_tutorial_tests>`_ 中 chapter2 对应的所有测例，测例详情见对应仓库。
-
-challenge: 支持多核，实现多个核运行用户程序。
-
-实验约定
-++++++++++++++++++++++++++++++
-
-在第二章的测试中，我们对于内核有如下仅仅为了测试方便的要求，请调整你的内核代码来符合这些要求。
-
-- 用户栈大小必须为 4096，且按照 4096 字节对齐。这一规定可以在实验4开始删除，仅仅为通过 lab2/3 测例设置。
-
-.. _inherit-last-ch-changes:
-
-.. note::
-
-   **如何快速继承上一章练习题的修改**
-
-   从这一章开始，在完成本章习题之前，首先要做的就是将上一章框架的修改继承到本章的框架代码。出于各种原因，实际上通过 ``git merge`` 并不是很方便，这里给出一种打 patch 的方法，希望能够有所帮助。
-
-   1. 切换到上一章的分支，通过 ``git log`` 找到你在此分支上的第一次 commit 的前一个 commit 的 ID ，复制其前 8 位，记作 ``base-commit`` 。假设分支上最新的一次 commit ID 是 ``last-commit`` 。
-   2. 确保你位于项目根目录 ``rCore-Tutorial-v3`` 下。通过 ``git diff <base-commit> <last-commit> > <patch-path>`` 即可在 ``patch-path`` 路径位置（比如 ``~/Desktop/chx.patch`` ）生成一个描述你对于上一章分支进行的全部修改的一个补丁文件。打开看一下，它给出了每个被修改的文件中涉及了哪些块的修改，还附加了块前后的若干行代码。如果想更加灵活进行合并的话，可以通过 ``git format-patch <base-commit>`` 命令在当前目录下生成一组补丁，它会对于 ``base-commit`` 后面的每一次 commit 均按照顺序生成一个补丁。
-   3. 切换到本章分支，通过 ``git apply --reject <patch-path>`` 来将一个补丁打到当前章节上。它的大概原理是对于补丁中的每个被修改文件中的每个修改块，尝试通过块的前后若干行代码来定位它在当前分支上的位置并进行替换。有一些块可能无法匹配，此时会生成与这些块所在的文件同名的 ``*.rej`` 文件，描述了哪些块替换失败了。在项目根目录 ``rCore-Tutorial-v3`` 下，可以通过 ``find . -name *.rej`` 来找到所有相关的 ``*.rej`` 文件并手动完成替换。
-   4. 在处理完所有 ``*.rej`` 之后，将它们删除并 commit 一下。现在就可以开始本章的实验了。 
-
-
-实验检查
-++++++++++++++++++++++++++++++
-
-- 实验目录要求(Rust)
-
-.. code-block::
-
-   ├── os(内核实现)
-   │   ├── build.rs (在这里实现用户程序的打包)   
-   │   ├── Cargo.toml(配置文件)
-   │   ├── Makefile (要求 make run 可以正确执行，尽量不输出调试信息)
-   │   ├── src(所有内核的源代码放在 os/src 目录下)
-   │       ├── main.rs(内核主函数)
-   │       ├── ...
-   ├── reports
-   │   ├── lab2.md/pdf
-   │   └── ...
-   ├── README.md（其他必要的说明）
-   ├── ...
-
-参考示例目录结构。目标用户目录 ``../user/build/bin``。
-
-- 检查
-
-.. code-block:: console
-
-   $ git checkout ch2
-   $ cd os
-   $ make run
-
-可以正确执行正确执行目标用户测例，并得到预期输出（详见测例注释）。
-
-注意：如果设置默认 log 等级，从 lab2 开始关闭所有 log 输出。
-
-简答题
+问答作业
 -------------------------------
 
-1. 正确进入 U 态后，程序的特征还应有：使用 S 态特权指令，访问 S 态寄存器后会报错。目前由于一些其他原因，这些问题不太好测试，请同学们可以自行测试这些内容（参考 `前三个测例 <https://github.com/DeathWish5/rCore_tutorial_tests/tree/master/user/src/bin>`_ ），描述程序出错行为，同时注意注明你使用的 sbi 及其版本。
+1. 正确进入 U 态后，程序的特征还应有：使用 S 态特权指令，访问 S 态寄存器后会报错。请同学们可以自行测试这些内容（参考`前三个测例 <https://github.com/DeathWish5/riscvos-c-tests/tree/main/user/src>`_ ，描述程序出错行为，同时注意注明你使用的 sbi 及其版本。
+   
+2. 请结合用例理解 `trampoline.S <https://github.com/DeathWish5/uCore-Tutorial-v2/blob/ch2/os/trampoline.S>`_ 中两个函数 `userret` 和 `uservec` 的作用，并回答如下几个问题:
 
-2. 请结合用例理解 `trap.S <https://github.com/rcore-os/rCore-Tutorial-v3/blob/ch2/os/src/trap/trap.S>`_ 中两个函数 ``__alltraps`` 和 ``__restore`` 的作用，并回答如下几个问题:
+    1. L79: 刚进入 `userret` 时，`a0`、`a1` 分别代表了什么值。 
 
-   1. L40：刚进入 ``__restore`` 时，``a0`` 代表了什么值。请指出 ``__restore`` 的两种使用情景。
+    2. L87-L88: `sfence` 指令有何作用？为什么要执行该指令，当前章节中，删掉该指令会导致错误吗？
+        ..code-block:: assembly
 
-   2. L46-L51：这几行汇编代码特殊处理了哪些寄存器？这些寄存器的的值对于进入用户态有何意义？请分别解释。
-      
-      .. code-block:: riscv
+         csrw satp, a1
+         sfence.vma zero, zero
 
-         ld t0, 32*8(sp)
-         ld t1, 33*8(sp)
-         ld t2, 2*8(sp)
-         csrw sstatus, t0
-         csrw sepc, t1
-         csrw sscratch, t2
+    3. L96-L125: 为何注释中说要除去 `a0`？哪一个地址代表 `a0`？现在 `a0` 的值存在何处？
+        ..code-block:: assembly
 
-   3. L53-L59：为何跳过了 ``x2`` 和 ``x4``？ 
+         # restore all but a0 from TRAPFRAME
+         ld ra, 40(a0)
+         ld sp, 48(a0)
+         ld t5, 272(a0)
+         ld t6, 280(a0)
 
-      .. code-block:: riscv
+    4. `userret`：中发生状态切换在哪一条指令？为何执行之后会进入用户态？
 
-         ld x1, 1*8(sp)
-         ld x3, 3*8(sp)
-         .set n, 5
-         .rept 27
-            LOAD_GP %n
-            .set n, n+1
-         .endr
+    5. L29： 执行之后，a0 和 sscratch 中各是什么值，为什么？
+       ..code-block:: assembly
 
-   4. L63：该指令之后，``sp`` 和 ``sscratch`` 中的值分别有什么意义？
+         csrrw a0, sscratch, a0   
 
-      .. code-block:: riscv
+    6. L32-L61: 从 trapframe 第几项开始保存？为什么？是否从该项开始保存了所有的值，如果不是，为什么？
+        ..code-block:: assembly
 
-         csrrw sp, sscratch, sp
+         sd ra, 40(a0)
+         sd sp, 48(a0)
+         ...
+         sd t5, 272(a0)
+         sd t6, 280(a0)
 
-   5. ``__restore``：中发生状态切换在哪一条指令？为何该指令执行之后会进入用户态？
+    7. 进入 S 态是哪一条指令发生的？
 
-   6. L13：该指令之后，``sp`` 和 ``sscratch`` 中的值分别有什么意义？
+    8. L75-L76: `ld t0, 16(a0)` 执行之后，`t0`中的值是什么，解释该值的由来？
+        ..code-block:: assembly
 
-      .. code-block:: riscv
-
-         csrrw sp, sscratch, sp
-
-   7. 从 U 态进入 S 态是哪一条指令发生的？
+         ld t0, 16(a0)
+         jr t0
 
 3. 程序陷入内核的原因有中断和异常（系统调用），请问 riscv64 支持哪些中断 / 异常？如何判断进入内核是由于中断还是异常？描述陷入内核时的几个重要寄存器及其值。
-
-4. 对于任何中断，``__alltraps`` 中都需要保存所有寄存器吗？你有没有想到一些加速 ``__alltraps`` 的方法？简单描述你的想法。
-
-报告要求
--------------------------------
-
-- 简单总结与上次实验相比本次实验你增加的东西（控制在5行以内，不要贴代码）。
-- 完成问答问题。
-- (optional) 你对本次实验设计及难度/工作量的看法，以及有哪些需要改进的地方，欢迎畅所欲言。
