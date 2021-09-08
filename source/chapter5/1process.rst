@@ -62,40 +62,33 @@ fork 系统调用
 
 .. code-block:: c
 
-    int
-    fork(void)
+    int fork()
     {
-        int pid;
-        struct proc *np;
         struct proc *p = curr_proc();
-        // Allocate process.
-        if((np = allocproc()) == 0){
-            panic("allocproc\n");
-        }
+        struct proc *np = allocproc();
         // Copy user memory from parent to child.
-        if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
-            panic("uvmcopy\n");
-        }
-        np->sz = p->sz;
-
+        uvmcopy(p->pagetable, np->pagetable, p->max_page);
+        np->max_page = p->max_page;
         // copy saved user registers.
         *(np->trapframe) = *(p->trapframe);
-
         // Cause fork to return 0 in the child.
         np->trapframe->a0 = 0;
-        pid = np->pid;
         np->parent = p;
         np->state = RUNNABLE;
-        return pid;
+        return np->pid;
     }
 
-首先，fork调用allocproc分配一个新的进程PCB（具体内容请见lab3，lab4，注意页表的初始化也在alloc时完成了）。之后，根据fork的规定，我们需要把进程A的内存拷贝至B的进程使得二者一样。我们不能仅仅拷贝一份一模一样的页表，那么父子进程就会修改同样的物理内存，发生数据冲突，不符合进程隔离的要求。需要把页表对应的页先拷贝一份，然后建立一个对这些新页有同样映射的页表。这一工作由一个 uvmcopy 的函数去做。uvmcopy函数会遍历A进程的页表，以页为单位将对应的内存复制到B进程页表中新kalloc的空闲地址之中。注意由于mmap系统调用的存在，我们不能简单直接复制A进程虚拟地址[0x0, memory size)对应的物理地址到B，这样会产生遗漏。
+首先，fork调用allocproc分配一个新的进程PCB（具体内容请见lab3，lab4，注意页表的初始化也在alloc时完成了）。之后，根据fork的规定，我们需要把进程A的内存拷贝至B的进程使得二者一样。我们不能仅仅拷贝一份一模一样的页表，那么父子进程就会修改同样的物理内存，发生数据冲突，不符合进程隔离的要求。需要把页表对应的页先拷贝一份，然后建立一个对这些新页有同样映射的页表。这一工作由一个 uvmcopy 的函数去做。uvmcopy函数会遍历A进程的页表，以页为单位将对应的内存复制到B进程页表中新kalloc的空闲地址之中。
+
+.. warning::
+
+    注意 mmap 对于进程 max_page 的影响。在 ch4 中，即便实现错误导致了内存泄漏也不会有直接致命的影响，但在 lab5 就不是这样了！修复你的 mmap 实现！
 
 之后，我们把A的trapframe也复制给B，确保了B能继续A的执行流。但是我们设定a0寄存器的值为a，这是因为fork要求子进程的fork返回值是0。之后就是对于PCB的状态设定。
 
 全部处理完之后，我们就得到了fork的新进程，并且父进程此时的返回值就是子进程的pid。
 
-这里大家要仔细思考一下，当调度的我们新生成的子进程B的时候，它的执行流具体是什么样子的？这个问题对于理解OS框架十分重要。
+这里大家要仔细思考一下，当调度的我们新生成的子进程B的时候，它的执行流具体是什么样子的？这个问题对于理解OS框架十分重要。提示：新进程的 context 是怎样的？allocproc 会在进程池中新增一个进程，那么调度到的这个进程会从哪里开始执行？
 
 wait 系统调用
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -154,35 +147,23 @@ exec 系统调用
 
 .. code-block:: c
 
-    int exec(char* name) {
+    int exec(char *name)
+    {
         int id = get_id_by_name(name);
-        if(id < 0)
+        if (id < 0)
             return -1;
         struct proc *p = curr_proc();
-        proc_freepagetable(p->pagetable, p->sz);
-        p->sz = 0;
-        p->pagetable = proc_pagetable(p);
-        if(p->pagetable == 0){
-            panic("");
-        }
+        uvmunmap(p->pagetable, 0, p->max_page, 1);
+        p->max_page = 0;
         loader(id, p);
         return 0;
     }
 
 我们exec的设计是传入待执行测例的文件名。之后会找到文件名对应的id。如果存在对应文件，就会执行内存的释放。
 
-.. code-block:: c
+由于 trapframe 和 trampoline 是可以复用的（每个进程都一样），所以我们并不会把他们 unmap。而对于用户真正的数据，就会删掉映射的同时把物理页面也 free 掉。
 
-    void proc_freepagetable(pagetable_t pagetable, uint64 sz)
-    {
-        uvmunmap(pagetable, TRAMPOLINE, 1, 0); 
-        uvmunmap(pagetable, TRAPFRAME, 1, 0);
-        uvmfree(pagetable, sz);
-    }
-
-由于 trapframe 和 trampoline 是可以复用的（每个进程都一样），所以我们并不会把他们删掉，而仅仅是 unmap。而对于用户真正的数据，就会删掉映射的同时把物理页面也 free 掉。（其实 trapframe 和 trampoline 也可以不 unmap 直接用，但我们想复用 loader.c 中的代码，所以先 unmap 掉。）
-
-之后重新创建一个新的页表并进行trapframe 和 trampoline的新的映射，并将测例加载进入新的进程。这个loader函数相较前面的章节有比较大的修改，我们会在下一节说明。
+之后就是执行 loader 函数，这个loader函数相较前面的章节有比较大的修改，我们会在下一节说明。
 
 支持了fork和exec之后，我们就用拥有了支持shell的基本能力。
 

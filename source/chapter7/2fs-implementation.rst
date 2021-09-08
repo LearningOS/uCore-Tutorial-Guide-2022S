@@ -12,7 +12,7 @@ nfs文件系统
 导言中提到，我们的nfs文件系统十分类似ext4文件系统，下面我们可以看一下nfs文件系统的布局::
     // 基本信息：块大小 BSIZE = 1024B，总容量 FSSIZE = 1000 个 block = 1000 * 1024 B。
     // Layout:
-    // 0号块目前不起作用，可以忽略。superblock 固定为 1 号块，size 固定为一个块。
+    // 0号块留待后续拓展，可以忽略。superblock 固定为 1 号块，size 固定为一个块。
     // 其后是储存 inode 的若干个块，占用块数 = inode 上限 / 每个块上可以容纳的 inode 数量，
     // 其中 inode 上限固定为 200，每个块的容量 = BSIZE / sizeof(struct disk_inode)
     // 再之后是数据块相关内容，包含一个 储存空闲块位置的 bitmap 和 实际的数据块，bitmap 块
@@ -89,7 +89,7 @@ virtio 磁盘驱动
 
 注意：这一部分代码不需要同学们详细了解细节，但需要知道大概的过程。
 
-在 ucore-tutorial 中磁盘块的读写是通过中断处理的。在 virtio.h 和 virtio-disk.c 中我们按照 qemu 对 virtio 的定义，实现了 virtio_disk_init 和 virtio_disk_rw 两个函数，前者完成磁盘设备的初始化和对其管理的初始化。virtio_disk_rw 实际完成磁盘IO，当设定好读写信息后会通过 MMIO 的方式通知磁盘开始写。然后，os 会开启中断并开始死等磁盘读写完成。当磁盘完成 IO 后，磁盘会触发一个外部中断，在中断处理中会把死循环条件解除。内核态只会在处理磁盘读写的时候短暂开启中断，之后会马上关闭。
+在 uCore-Tutorial 中磁盘块的读写是通过中断处理的。在 virtio.h 和 virtio-disk.c 中我们按照 qemu 对 virtio 的定义，实现了 virtio_disk_init 和 virtio_disk_rw 两个函数，前者完成磁盘设备的初始化和对其管理的初始化。virtio_disk_rw 实际完成磁盘IO，当设定好读写信息后会通过 MMIO 的方式通知磁盘开始写。然后，os 会开启中断并开始死等磁盘读写完成。当磁盘完成 IO 后，磁盘会触发一个外部中断，在中断处理中会把死循环条件解除。内核态只会在处理磁盘读写的时候短暂开启中断，之后会马上关闭。
 
 .. code-block:: c
 
@@ -551,6 +551,7 @@ ialloc 干的事情：遍历 inode blocks 找到一个空闲的inode，初始化
 文件读写结束后需要fclose释放掉其inode，同时释放OS中对应的file结构体和fd。其实 inode 文件的关闭只需要调用 iput 就好了，iput 的实现简单到让人感觉迷惑，就是 inode 引用计数减一。诶？为什么没有计数为 0 就写回然后释放 inode 的操作？和 buf 的释放同理，这里会等 inode 池满了之后自行被替换出去，重新读磁盘实在太太太太慢了。对了，千万记得 iput 和 iget 数量相同，一定要一一对应，否则你懂的。
 
 .. code-block:: c
+
     void
     fileclose(struct file *f)
     {

@@ -4,7 +4,7 @@
 本节导读
 -------------------------------------------------
 
-本节我们首先以Linux 上的常规文件和目录为例，站在访问文件的应用的角度，介绍文件中值得注意的地方及文件使用方法。由于 Linux 上的文件系统模型还是比较复杂，在我们的内核实现中对它进行了很大程度的简化，我们会对简化的具体情形进行介绍。最后，我们介绍我们内核上应用的开发者应该如何使用我们简化后的文件系统和一些相关知识。
+本节我们首先以 Linux 上的常规文件和目录为例，站在访问文件的应用的角度，介绍文件中值得注意的地方及文件使用方法。由于 Linux 上的文件系统模型还是比较复杂，在我们的内核实现中对它进行了很大程度的简化，我们会对简化的具体情形进行介绍。最后，我们介绍我们内核上应用的开发者应该如何使用我们简化后的文件系统和一些相关知识。
 
 文件和目录
 -------------------------------------------------
@@ -18,21 +18,21 @@
 
 .. code-block:: console
 
-    $ cd os/src/
-    $ stat main.rs
-    File: main.rs
-    Size: 940       	Blocks: 8          IO Block: 4096   regular file
-    Device: 801h/2049d	Inode: 4975        Links: 1
-    Access: (0644/-rw-r--r--)  Uid: ( 1000/   oslab)   Gid: ( 1000/   oslab)
-    Access: 2021-02-28 23:32:50.289925450 +0800
-    Modify: 2021-02-28 23:32:50.133927136 +0800
-    Change: 2021-02-28 23:32:50.133927136 +0800
+    $ stat os/main.c 
+
+    File: os/main.c
+    Size: 491             Blocks: 8          IO Block: 4096   regular file
+    Device: 805h/2053d      Inode: 4726542     Links: 1
+    Access: (0664/-rw-rw-r--)  Uid: ( 1000/deathwish)   Gid: ( 1000/deathwish)
+    Access: 2021-09-08 17:52:06.915389371 +0800
+    Modify: 2021-09-08 17:52:06.127425836 +0800
+    Change: 2021-09-08 17:52:06.127425836 +0800
     Birth: -
 
 ``stat`` 工具展示了 ``main.c`` 的如下信息：
 
 - File 表明它的文件名为 ``main.c`` 。
-- Size 表明它的字节大小为 940 字节。
+- Size 表明它的字节大小为 491 字节。
 - Blocks 表明它占据 8 个 **块** (Block) 来存储。在文件系统中，文件的数据以块为单位进行存储，在 IO Block 可以看出在 Ubuntu 系统中每个块的大小为 4096 字节。
 - regular file 表明这个文件是一个常规文件。事实上，其他类型的文件也可以通过文件名来进行访问。
 - 当文件是一个特殊文件（如块设备文件或者字符设备文件的时候），Device 将指出该特殊文件的 major/minor ID 。对于一个常规文件，我们无需关心它。
@@ -53,13 +53,14 @@
 .. code-block:: console
 
     $ stat os
-    File: os
-    Size: 4096      	Blocks: 8          IO Block: 4096   directory
-    Device: 801h/2049d	Inode: 4982        Links: 5
-    Access: (0755/drwxr-xr-x)  Uid: ( 1000/   oslab)   Gid: ( 1000/   oslab)
-    Access: 2021-02-28 23:32:50.133927136 +0800
-    Modify: 2021-02-28 23:32:50.129927180 +0800
-    Change: 2021-02-28 23:32:50.129927180 +0800
+    
+    File: os/main.c
+    Size: 491             Blocks: 8          IO Block: 4096   regular file
+    Device: 805h/2053d      Inode: 4726542     Links: 1
+    Access: (0664/-rw-rw-r--)  Uid: ( 1000/deathwish)   Gid: ( 1000/deathwish)
+    Access: 2021-09-08 17:52:06.915389371 +0800
+    Modify: 2021-09-08 17:52:06.127425836 +0800
+    Change: 2021-09-08 17:52:06.127425836 +0800
     Birth: -
 
 directory 表明 ``os`` 是一个目录，从 Access 字符串的首位 ``d`` 也可以看出这一点。对于目录而言， Access 的 ``rwx`` 含义有所不同：
@@ -72,8 +73,8 @@ Blocks 给出 ``os`` 目录也占用 8 个块进行存储。实际上目录也�
 
 有了目录之后，我们就可以将所有的文件和目录组织为一种被称为 **目录树** (Directory Tree) 的有根树结构（不考虑软链接）。树中的每个节点都是一个文件或目录，一个目录下面的所有的文件和子目录都是它的孩子。可以看出所有的文件都是目录树的叶子节点。目录树的根节点也是一个目录，它被称为 **根目录** (Root Directory)。目录树中的每个目录和文件都可以用它的 **绝对路径** (Absolute Path) 来进行索引，该绝对路径是目录树上的根节点到待索引的目录和文件所在的节点之间自上而下的路径上的所有节点的文件或目录名两两之间加上路径分隔符拼接得到的。例如，在 Linux 上，根目录的绝对路径是 ``/`` ，路径分隔符也是 ``/`` ，因此：
 
-- ``main.rs`` 的绝对路径是 ``/home/oslab/workspace/v3/rCore-Tutorial-v3/os/src/main.rs`` ；
-- ``os`` 目录的绝对路径则是 ``/home/oslab/workspace/v3/rCore-Tutorial-v3/os/`` 。
+- ``main.c`` 的绝对路径是 ``/home/oslab/workspace/UCORE/uCore-Tutorial-v2/os/main.c`` ；
+- ``os`` 目录的绝对路径则是 ``/home/oslab/workspace/UCORE/uCore-Tutorial-v2/os`` 。
 
 上面的绝对路径因具体环境而异。
 

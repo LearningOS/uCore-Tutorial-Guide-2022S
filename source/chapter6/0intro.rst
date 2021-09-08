@@ -29,104 +29,64 @@
 
 .. code-block:: console
 
-   $ cd os
-   $ make run
+   $ make test BASE=1
+   # 在 shell 中执行：
+   >> ch6b_usertest
 
 本章代码树
 -----------------------------------------
 
-.. code-block::
+.. code-block:: bash
 
-    ./os/src
-    Rust        28 Files    2061 Lines
-    Assembly     3 Files      88 Lines
-
-    ├── bootloader
-    │   ├── rustsbi-k210.bin
-    │   └── rustsbi-qemu.bin
-    ├── LICENSE
-    ├── os
-    │   ├── build.rs
-    │   ├── Cargo.lock
-    │   ├── Cargo.toml
-    │   ├── Makefile
-    │   └── src
-    │       ├── config.rs
-    │       ├── console.rs
-    │       ├── entry.asm
-    │       ├── fs(新增：文件系统子模块 fs)
-    │       │   ├── mod.rs(包含已经打开且可以被进程读写的文件的抽象 File Trait)
-    │       │   ├── pipe.rs(实现了 File Trait 的第一个分支——可用来进程间通信的管道)
-    │       │   └── stdio.rs(实现了 File Trait 的第二个分支——标准输入/输出)
-    │       ├── lang_items.rs
-    │       ├── link_app.S
-    │       ├── linker-k210.ld
-    │       ├── linker-qemu.ld
-    │       ├── loader.rs
-    │       ├── main.rs
-    │       ├── mm
-    │       │   ├── address.rs
-    │       │   ├── frame_allocator.rs
-    │       │   ├── heap_allocator.rs
-    │       │   ├── memory_set.rs
-    │       │   ├── mod.rs
-    │       │   └── page_table.rs(新增：应用地址空间的缓冲区抽象 UserBuffer 及其迭代器实现)
-    │       ├── sbi.rs
-    │       ├── syscall
-    │       │   ├── fs.rs(修改：调整 sys_read/write 的实现，新增 sys_close/pipe)
-    │       │   ├── mod.rs(修改：调整 syscall 分发)
-    │       │   └── process.rs
-    │       ├── task
-    │       │   ├── context.rs
-    │       │   ├── manager.rs
-    │       │   ├── mod.rs
-    │       │   ├── pid.rs
-    │       │   ├── processor.rs
-    │       │   ├── switch.rs
-    │       │   ├── switch.S
-    │       │   └── task.rs(修改：在任务控制块中加入文件描述符表相关机制)
-    │       ├── timer.rs
-    │       └── trap
-    │           ├── context.rs
-    │           ├── mod.rs
-    │           └── trap.S
-    ├── README.md
-    ├── rust-toolchain
-    ├── tools
-    │   ├── kflash.py
-    │   ├── LICENSE
-    │   ├── package.json
-    │   ├── README.rst
-    │   └── setup.py
-    └── user
-        ├── Cargo.lock
-        ├── Cargo.toml
-        ├── Makefile
-        └── src
-            ├── bin
-            │   ├── exit.rs
-            │   ├── fantastic_text.rs
-            │   ├── forktest2.rs
-            │   ├── forktest.rs
-            │   ├── forktest_simple.rs
-            │   ├── forktree.rs
-            │   ├── hello_world.rs
-            │   ├── initproc.rs
-            │   ├── matrix.rs
-            │   ├── pipe_large_test.rs(新增)
-            │   ├── pipetest.rs(新增)
-            │   ├── run_pipe_test.rs(新增)
-            │   ├── sleep.rs
-            │   ├── sleep_simple.rs
-            │   ├── stack_overflow.rs
-            │   ├── user_shell.rs
-            │   ├── usertests.rs
-            │   └── yield.rs
-            ├── console.rs
-            ├── lang_items.rs
-            ├── lib.rs(新增两个系统调用：sys_close/sys_pipe)
-            ├── linker.ld
-            └── syscall.rs(新增两个系统调用：sys_close/sys_pipe)
+   .
+   ├── bootloader
+   │   └── rustsbi-qemu.bin
+   ├── LICENSE
+   ├── Makefile
+   ├── os
+   │   ├── console.c
+   │   ├── console.h
+   │   ├── const.h
+   │   ├── defs.h
+   │   ├── entry.S
+   │   ├── file.c
+   │   ├── file.h
+   │   ├── kalloc.c
+   │   ├── kalloc.h
+   │   ├── kernel.ld
+   │   ├── kernelld.py
+   │   ├── loader.c
+   │   ├── loader.h
+   │   ├── log.h
+   │   ├── main.c
+   │   ├── pack.py
+   │   ├── pipe.c
+   │   ├── printf.c
+   │   ├── printf.h
+   │   ├── proc.c
+   │   ├── proc.h
+   │   ├── riscv.h
+   │   ├── sbi.c
+   │   ├── sbi.h
+   │   ├── string.c
+   │   ├── string.h
+   │   ├── switch.S
+   │   ├── syscall.c
+   │   ├── syscall.h
+   │   ├── syscall_ids.h
+   │   ├── timer.c
+   │   ├── timer.h
+   │   ├── trampoline.S
+   │   ├── trap.c
+   │   ├── trap.h
+   │   ├── types.h
+   │   ├── vm.c
+   │   └── vm.h
+   ├── README.md
+   ├── scripts
+   │   ├── kernelld.py
+   │   └── pack.py
+   └── user
 
 
 

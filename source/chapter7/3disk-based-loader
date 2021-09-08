@@ -1,0 +1,222 @@
+基于磁盘的 OS
+================================================
+
+本节导读
+------------------------------------------------
+在有了对磁盘的控制能力后，我们的 os 也随之发生了一系列的改变，包括:
+
+- 从磁盘加载文件(之前一直通过奇怪的操作打包进内存)
+- 更加完善的文件管理
+- 支持命令行参数
+- 支持 IO 重定向
+
+这一节我们介绍前两点，下一节介绍后两点的实现。
+
+从磁盘加载文件
+------------------------------------------------
+
+之前，我们都通过 pack.py 和 kernelld.py 将用户软件的镜像打包进内存。但内存并不是持久化的存储介质，一旦掉电就会失效，因此把用户程序存储在磁盘上，有需要的时候从磁盘加载才是科学的方式，我们来看看要办到这一点需要那些修改。
+
+首先，我们不再需要 pack.py kernelld.py 等脚本，仅仅保留了一个为了测试方便的 initproc.py，这个脚本的唯一作用就是插入 INIT_PROC 这个 symbol。
+
+接下来，os 主要的修改就主要集中在 bin_loader 这个函数了，:
+
+.. code-block:: c 
+
+    // 首先，不在需要传入 start, end 只需要传入对应的 inode 指针
+    // 所有的用户程序镜像已经打包到了磁盘里，这部分之后介绍
+    int bin_loader(struct inode *ip, struct proc *p)
+    {
+        ivalid(ip);
+        void *page;
+        // 不需要 pa 相关的东西，其实 start = 文件开头，length = 文件大小
+        uint64 length = ip->size;
+        // va 相关设定不变
+        uint64 va_start = BASE_ADDRESS;
+        uint64 va_end = PGROUNDUP(BASE_ADDRESS + length);
+        for (uint64 va = va_start, off = 0; va < va_end; va += PGSIZE, off += PAGE_SIZE) {
+            page = kalloc();
+            // 之前的 memmove 变为了 readi，也就是从磁盘读取
+            readi(ip, 0, (uint64)page, off, PAGE_SIZE);
+            // 由于 kalloc 会写入垃圾数据，不对其的部分还是需要手动清空
+            if (off + PAGE_SIZE > length) {
+                memset(page + (length - off), 0, PAGE_SIZE - (length - off));
+            }
+            mappages(p->pagetable, va, PGSIZE, (uint64)page, PTE_U | PTE_R | PTE_W | PTE_X);
+        }
+        // 其余部分不变
+        // map stack
+        // set trapframe
+    }
+
+那么，用户程序是如何被打包成一个遵循上一节所说设定的磁盘镜像的呢？这就是 ``nfs/fs.c`` 的功劳了。我们可以使用 ``make -C nfs`` 来得到一个 fs.img 的镜像，对应的 ``nfs/Makefile`` 如下：
+
+.. code-block:: Makefile 
+
+    FS_FUSE := fs
+    $(FS_FUSE): fs.c fs.h types.h
+
+    fs.img: $(FS_FUSE)
+        ./$(FS_FUSE) $@ $(wildcard $(U)/$(USER_BIN_DIR)/*)
+
+可以看到 fs.c 会被编译为可执行程序 fs, 使用格式如下:
+
+.. code-block:: console 
+
+    fs 输出镜像名称 输入文件1 输入文件2 输入文件3 ...
+
+Makfile 中，我们把 user 产生的所有 bin 文件作为输入文件。接下来我们简要解析 fs.c 的具体逻辑，同学们不需要完整的理解这段程序的逻辑，但想要正确的完成 lab7 的实验，必须对 fs.c 进行对应的修改。在 exercise 章节会有一定提示。
+
+.. code-block:: c 
+
+    // 一些全局常量定义
+    int NINODES = 200;      //  文件系统设定的 inode 数量
+    int nbitmap = FSSIZE / (BSIZE * 8) + 1;     // bitmap block 的数量
+    int ninodeblocks = NINODES / IPB + 1;       // inode block 的数量
+    int nmeta;              // meta 数据块的数量（含义下方解释）
+    int nblocks; 
+
+    // 一些全局变量定义
+    int fsfd; // 输出镜像文件的 fd
+    struct superblock sb; // 超级块
+    char zeroes[BSIZE];  // BSIZE 大小的空 buf，用来清空某一个磁盘块
+    uint freeinode = 1; // 表示还空闲的 inode，每使用一个 inode 需要 +1
+    uint freeblock;     // 表示还空闲的 block，每使用一个 block 需要 +1
+
+    int main(int argc, char *argv[])
+    {
+        int i, cc, fd;
+        uint rootino, inum, off;
+        struct dirent de;
+        char buf[BSIZE];
+        struct dinode din;
+        // 至少需要输入镜像的名称
+        if (argc < 2) {
+            fprintf(stderr, "Usage: mkfs fs.img files...\n");
+            exit(1);
+        }
+        // 创建输出文件
+        fsfd = open(argv[1], O_RDWR | O_CREAT | O_TRUNC, 0666);
+
+        // [ boot block | sb block | inode blocks | free bit map | data blocks ]
+        // meta data 包括： boot block, superblock, inode block, free bitmap
+        nmeta = 2 + ninodeblocks + nbitmap;
+        // nblocks 表示存放数据剩余的块数
+        nblocks = FSSIZE - nmeta;
+
+        // superblock 初始化
+        // xint() 的功能仅仅是转换字节顺序，大家可以忽略这个细节
+        sb.magic = FSMAGIC;
+        sb.size = xint(FSSIZE);
+        sb.nblocks = xint(nblocks);
+        sb.ninodes = xint(NINODES);
+        sb.inodestart = xint(2);
+        sb.bmapstart = xint(2 + ninodeblocks);
+
+        // 目前还空闲的的块，目前我们只占用了 meta data 的那些块
+        // 之后，没使用一块，freeblock 需要 +1。
+        freeblock = nmeta;
+
+        // wsect 会写输出镜像，把第 i 个块写为 buf，这里首先清空一遍
+        for (i = 0; i < FSSIZE; i++)
+            wsect(i, zeroes);
+
+        memset(buf, 0, sizeof(buf));
+        memmove(buf, &sb, sizeof(sb));
+        // 0 号块不处理
+        // 1 号快写为之前设定好的 superblock
+        wsect(1, buf);
+
+        // ialloc() 会分配一个空的 inode，并初始化 type，返回 inode id
+        rootino = ialloc(T_DIR);
+
+        // 从第二个参数开始都是需要打包的用户程序
+        for (i = 2; i < argc; i++) {
+            // 获得 basename，这是为了去掉前缀 "../user/target/bin/"
+            char *shortname = basename(argv[i]);
+            assert(index(shortname, '/') == 0);
+
+            // 打开对应的用户文件
+            if ((fd = open(argv[i], 0)) < 0) {
+                perror(argv[i]);
+                exit(1);
+            }
+
+            // 为每一个用户程序分配一个 inode
+            inum = ialloc(T_FILE);
+
+            // 为每一个用户程序分配一个根目录中的目录项
+            bzero(&de, sizeof(de));
+            de.inum = xshort(inum);
+            strncpy(de.name, shortname, DIRSIZ);
+            // 把该目录项写入根目录的数据块
+            // iappend 会像某一个 inode 对应的数据块后 append 数据
+            iappend(rootino, &de, sizeof(de));
+            // 读取该程序的数据并写入对应 inode 的数据块
+            while ((cc = read(fd, buf, sizeof(buf))) > 0)
+                iappend(inum, buf, cc);
+
+            close(fd);
+        }
+
+        // 更新 rootdir inode 对应的 size 数据，按数据快大小取整
+        rinode(rootino, &din);
+        off = xint(din.size);
+        off = ((off / BSIZE) + 1) * BSIZE;
+        din.size = xint(off);
+        winode(rootino, &din);
+        // balloc 完成 bitmap 的填写，把 [0, freeblock) 的块标记为已经使用
+        balloc(freeblock);
+        return 0;
+    }
+
+
+更加完善的文件管理
+----------------------------------------
+
+ch7 规范化了对于 fd 的管理，比如 0, 1, 2 不再是保留给 stdio 文件的 fd 参数，而是会在进程创建的时候给进程 3 个默认文件。为什么要这么做？这使得不需要的时候我们可以关闭 stdio 文件：
+
+.. code-block:: c 
+
+    // allocproc() 之后必须执行 init_stdio_files 来初始化 files
+    int init_stdio_files(struct proc *p)
+    {
+        for (int i = 0; i < 3; i++) {
+            p->files[i] = stdio_init(i);
+        }
+        return 0;
+    }
+
+    struct file *stdio_init(int fd)
+    {
+        struct file *f = filealloc();
+        f->type = FD_STDIO;
+        f->ref = 1;
+        f->readable = (fd == STDIN || fd == STDERR);
+        f->writable = (fd == STDOUT || fd == STDERR);
+        return f;
+    }
+
+同时 close 0,1,2 号文件不会失败并返回 -1，文件读写也不会直接根据 fd 判断，例如 sys_write:
+
+.. code-block:: c 
+
+    uint64 sys_write(int fd, uint64 va, uint64 len)
+    {
+        if (fd < 0 || fd > FD_BUFFER_SIZE)
+            return -1;
+        struct proc *p = curr_proc();
+        struct file *f = p->files[fd];
+        switch (f->type) {
+        case FD_STDIO:
+            return console_write(va, len);
+        case FD_PIPE:
+            return pipewrite(f->pipe, va, len);
+        case FD_INODE:
+            return inodewrite(f, va, len);
+        default:
+            panic("unknown file type %d\n", f->type);
+        }
+    }
+
+之后我们会看到，这使得文件重定向成为了可能， // TODO

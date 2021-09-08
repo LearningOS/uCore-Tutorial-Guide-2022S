@@ -209,7 +209,7 @@ mappages的perm是用于控制页表项的flags的。请注意它具体指向哪
         }
         // 注意 kalloc() 分配的页为脏页，这里需要先清空。
         memset(pagetable, 0, PGSIZE);
-        // 映射 trapoline（也就是 uservec 和 userret），注意这里的权限!
+        // 映射 trapoline（也就是 uservec 和 userret 的代码），注意这里的权限!
         if (mappages(pagetable, TRAMPOLINE, PAGE_SIZE, (uint64)trampoline,
                 PTE_R | PTE_X) < 0) {
             kfree(pagetable);
@@ -221,32 +221,33 @@ mappages的perm是用于控制页表项的flags的。请注意它具体指向哪
                 PTE_R | PTE_W) < 0) {
             panic("mappages fail");
         }
-        // 接下来映射用户实际地址空间，也就是把 physics address [start, end)
+        
+        // 接下来映射用户实际地址空间，也就是把 physics address [start, end)　
+        // 映射到虚拟地址 [BASE_ADDRESS, BASE_ADDRESS + length)
+
+        // riscv 指令有对齐要求，同时,如果不对齐直接映射的话会把部分内核地址映射到用户态，很不安全
+        // ch5我们就不需要这个限制了。
         if (!PGALIGNED(start)) {
+            // Fix in ch5
             panic("user program not aligned, start = %p", start);
         }
-        if (!PGALIGNED(end)) {
-            // Fix in ch5
-            warnf("Some kernel data maybe mapped to user, start = %p, end = %p",
-                start, end);
-        }
         end = PGROUNDUP(end);
+        // 实际的 map 指令。
         uint64 length = end - start;
         if (mappages(pg, BASE_ADDRESS, length, start,
                 PTE_U | PTE_R | PTE_W | PTE_X) != 0) {
             panic("mappages fail");
         }
         p->pagetable = pg;
+        // 接下来 map user stack， 注意这里的虚存选择，想想为何要这样？
         uint64 ustack_bottom_vaddr = BASE_ADDRESS + length + PAGE_SIZE;
-        if (USTACK_SIZE != PAGE_SIZE) {
-            // Fix in ch5
-            panic("Unsupported");
-        }
         mappages(pg, ustack_bottom_vaddr, USTACK_SIZE, (uint64)kalloc(),
             PTE_U | PTE_R | PTE_W | PTE_X);
         p->ustack = ustack_bottom_vaddr;
+        // 设置 trapframe
         p->trapframe->epc = BASE_ADDRESS;
         p->trapframe->sp = p->ustack + USTACK_SIZE;
+        // exit 的时候会 unmap 页表中 [BASE_ADDRESS, max_page * PAGE_SIZE) 的页
         p->max_page = PGROUNDUP(p->ustack + USTACK_SIZE - 1) / PAGE_SIZE;
         return pg;
     }

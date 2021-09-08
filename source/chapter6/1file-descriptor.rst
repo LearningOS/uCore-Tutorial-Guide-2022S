@@ -68,6 +68,7 @@
 注意文件对于进程而言也是其需要记录的一种资源，因此我们在进程对应的PCB结构体之中也需要记录进程打开的文件信息。我们给PCB增加文件指针数组。
 
 .. code-block:: c
+
     // proc.h
     // Per-process state
     struct proc {
@@ -78,15 +79,15 @@
 
     // os/proc.c
     int fdalloc(struct file* f) {
-    struct proc* p = curr_proc();
-    // fd = 0,1,2 is reserved for stdio/stdout/stderr
-    for(int i = 3; i < FD_MAX; ++i) {
-        if(p->files[i] == 0) {
-            p->files[i] = f;
-            return i;
+        struct proc* p = curr_proc();
+        // fd = 0,1,2 is reserved for stdio/stdout/stderr
+        for(int i = 3; i < FD_MAX; ++i) {
+            if(p->files[i] == 0) {
+                p->files[i] = f;
+                return i;
+            }
         }
-    }
-    return -1;
+        return -1;
     }
 
 一个进程能打开的文件是有限的（我们设置为16）。一个进程如果要打开某一个文件，其文件指针数组必须有空位。如果有，就把下标做为文件的fd，并把指定文件指针存入数组之中。
@@ -101,6 +102,7 @@ pipe管道的实现
 首先，看一下管道的结构体。
 
 .. code-block:: c
+
     // file.h，抽象成一个文件了。
     #define PIPESIZE 512
 
@@ -117,6 +119,7 @@ pipe管道的实现
 我们来看一下如何创建一个管道。
 
 .. code-block:: c
+
     :linenos:
 
     int pipealloc(struct file *f0, struct file *f1)
@@ -142,11 +145,16 @@ pipe管道的实现
         return 0;
     }
 
+.. note::
+
+    在内核中，我们是不能 new 一个结构体的，这是由于我们没有实现堆内存管理。但我们可以用一种略显浪费的方式，也就是直接 kalloc() 一个页，只要不大于一整个页的数据结构都可以这样 new 出来。
+
 管道两端的输入和输出被我们抽象成了两个文件。这两个文件的创建由sys_pipe调用完成。我们在分配时就会设置管道两端哪一端可写哪一端可读，并初始化管道本身的nread和nwrite记录buffer的指针。
 
 关闭pipe比较简单。函数其实只关闭了读写端中的一个，如果两个都被关闭，释放 pipe。
 
 .. code-block:: c
+
     :linenos:
 
     void pipeclose(struct pipe *pi, int writable)
@@ -164,7 +172,9 @@ pipe管道的实现
 重点是管道的读写.
 
 .. code-block:: c
+
     :linenos:
+
     int pipewrite(struct pipe *pi, uint64 addr, int n)
     {
         // w 记录已经写的字节数
@@ -233,6 +243,7 @@ pipe 相关系统调用
 首先是sys_pipe.
 
 .. code-block:: c
+
     :linenos:
 
     // os/syscall.c
@@ -257,29 +268,37 @@ pipe 相关系统调用
 sys_close比较简单。就只是释放掉进程的fd并且清空对应file，并且设置其种类为FD_NONE.
 
 .. code-block:: c
+
     :linenos:
 
-    uint64 sys_close(int fd) {
-        // stdio/stdout/stderr can't be closed for now
-        if(fd <= 2)
-            return 0;
+    uint64 sys_close(int fd)
+    {
+        // 目前不支持 stdio 的关闭，ch7会支持这个
+        if (fd <= 2 || fd > FD_BUFFER_SIZE)
+            return -1;
         struct proc *p = curr_proc();
-        fileclose(p->files[fd]);
+        struct file *f = p->files[fd];
+        // 目前仅支持关闭 pipe
+        if (f->type == FD_PIPE) {
+            fileclose(f);
+        } else {
+            panic("fileclose: unsupported file type %d fd = %d\n", f->type, fd);
+        }
         p->files[fd] = 0;
         return 0;
     }
 
     void fileclose(struct file *f)
     {
-        if(f->ref < 1)
-            panic("fileclose");
+        // ref == 0 才真正关闭
         if(--f->ref > 0) {
             return;
         }
-
+        // pipe 类型需要关闭对应的 pipe
         if(f->type == FD_PIPE){
             pipeclose(f->pipe, f->writable);
         }
+        // 清空其他数据
         f->off = 0;
         f->readable = 0;
         f->writable = 0;
@@ -292,30 +311,36 @@ sys_close比较简单。就只是释放掉进程的fd并且清空对应file，�
 .. code-block:: c
     :linenos:
 
-    uint64 sys_write(int fd, uint64 va, uint64 len) {
-        if(fd <= 2) {
+    uint64 sys_write(int fd, uint64 va, uint64 len)
+    {
+        if (fd == STDOUT || fd == STDERR) {
             return console_write(va, len);
         }
+        if (fd <= 2 || fd > FD_BUFFER_SIZE)
+            return -1;
         struct proc *p = curr_proc();
         struct file *f = p->files[fd];
-        if(f->type == FD_PIPE) {
+        if (f->type == FD_PIPE) {
             return pipewrite(f->pipe, va, len);
+        } else {
+            panic("unknown file type %d\n", f->type);
         }
-        error("unknown file type %d\n", f->type);
-        return -1;
     }
 
-    uint64 sys_read(int fd, uint64 va, uint64 len) {
-        if(fd <= 2) {
+    uint64 sys_read(int fd, uint64 va, uint64 len)
+    {
+        if (fd == STDIN) {
             return console_read(va, len);
         }
+        if (fd <= 2 || fd > FD_BUFFER_SIZE)
+            return -1;
         struct proc *p = curr_proc();
         struct file *f = p->files[fd];
-        if(f->type == FD_PIPE) {
+        if (f->type == FD_PIPE) {
             return piperead(f->pipe, va, len);
+        } else {
+            panic("unknown file type %d fd = %d\n", f->type, fd);
         }
-        error("unknown file type %d\n", f->type);
-        return -1;
     }
 
 注意一个文件目前fd最大就是15。

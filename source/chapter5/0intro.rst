@@ -31,83 +31,42 @@
 
 .. code-block:: console
 
-   $ cd os
-   $ make run
+   $ make test BASE=1
 
-将 Maix 系列开发板连接到 PC，并在上面运行本章代码：
+   # ....
+   app list:
+   ch2b_exit
+   ch2b_hello_world
+   ch2b_power
+   ch2b_write1
+   ch3b_sleep
+   ch3b_sleep1
+   ch3b_yield0
+   ch3b_yield1
+   ch3b_yield2
+   ch5b_exec_simple
+   ch5b_exit
+   ch5b_forktest0
+   ch5b_forktest1
+   ch5b_forktest2
+   ch5b_getpid
+   ch5b_usertest
+   usershell
+   C user shell
+   >>
 
-.. code-block:: console
+不出意外，你将最终运行进入 C suer shell，这里，你可以输入 app list 中的一个应用，敲击回车之后就可以运行。其中 ``ch5b_usertest`` 打包了很多应用，只要执行它就能够自动执行所有基础测试：
 
-   $ cd os
-   $ make run BOARD=k210
+.. code-block:: bash
 
-待内核初始化完毕之后，将在屏幕上打印可用的应用列表并进入shell程序（以 K210 平台为例）：
+   >> ch2b_exit
+   Shell: Process 2 exited with code 1234
+   >> ch2b_hello_world
+   Hello world from user mode program!
+   Test hello_world OK!
+   Shell: Process 3 exited with code 0
 
-.. code-block::
-
-   [rustsbi] RustSBI version 0.1.1
-   .______       __    __      _______.___________.  _______..______   __
-   |   _  \     |  |  |  |    /       |           | /       ||   _  \ |  |
-   |  |_)  |    |  |  |  |   |   (----`---|  |----`|   (----`|  |_)  ||  |
-   |      /     |  |  |  |    \   \       |  |      \   \    |   _  < |  |
-   |  |\  \----.|  `--'  |.----)   |      |  |  .----)   |   |  |_)  ||  |
-   | _| `._____| \______/ |_______/       |__|  |_______/    |______/ |__|
-
-   [rustsbi] Platform: K210 (Version 0.1.0)
-   [rustsbi] misa: RV64ACDFIMSU
-   [rustsbi] mideleg: 0x22
-   [rustsbi] medeleg: 0x1ab
-   [rustsbi] Kernel entry: 0x80020000
-   [kernel] Hello, world!
-   last 808 Physical Frames.
-   .text [0x80020000, 0x8002e000)
-   .rodata [0x8002e000, 0x80032000)
-   .data [0x80032000, 0x800c7000)
-   .bss [0x800c7000, 0x802d8000)
-   mapping .text section
-   mapping .rodata section
-   mapping .data section
-   mapping .bss section
-   mapping physical memory
-   remap_test passed!
-   after initproc!
-   /**** APPS ****
-   exit
-   fantastic_text
-   forktest
-   forktest2
-   forktest_simple
-   forktree
-   hello_world
-   initproc
-   matrix
-   sleep
-   sleep_simple
-   stack_overflow
-   user_shell
-   usertests
-   yield
-   **************/
-   Rust user shell
-   >>  
-
-其中 ``usertests`` 打包了很多应用，只要执行它就能够自动执行一系列应用。
-
-只需输入应用的名称并回车即可在系统中执行该应用。如果输入错误的话可以使用退格键 (Backspace) 。以应用 ``exit`` 为例：
-
-.. code-block::
-
-    >> exit
-    I am the parent. Forking the child...
-    I am the child.
-    I am parent, fork a child pid 3
-    I am the parent, waiting now..
-    waitpid 3 ok.
-    exit pass.
-    Shell: Process 2 exited with code 0
-    >> 
-
-当应用执行完毕后，将继续回到shell程序的命令输入模式。
+当应用执行完毕后，将继续回到shell程序的命令输入模式。另外，这个命令行支持退格键。
 
 
 本章代码导读

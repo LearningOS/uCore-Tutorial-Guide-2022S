@@ -31,45 +31,19 @@
 
 .. code-block:: console
 
-   $ cd os
-   $ make run
+   $ make test BASE=1
+   >> ch7b_usertest
 
-若要在 k210 平台上运行，首先需要将 microSD 通过读卡器插入 PC ，然后将打包应用 ELF 的文件系统镜像烧写到 microSD 中：
+.. code-block:: bash
 
-.. code-block:: console
-
-   $ cd os
-   $ make sdcard
-   Are you sure write to /dev/sdb ? [y/N]
-   y
-   16+0 records in
-   16+0 records out
-   16777216 bytes (17 MB, 16 MiB) copied, 1.76044 s, 9.5 MB/s
-   8192+0 records in
-   8192+0 records out
-   4194304 bytes (4.2 MB, 4.0 MiB) copied, 3.44472 s, 1.2 MB/s
-
-途中需要输入 ``y`` 确认将文件系统烧写到默认的 microSD 所在位置 ``/dev/sdb`` 中。这个位置可以在 ``os/Makefile`` 中的 ``SDCARD`` 处进行修改，在烧写之前请确认它被正确配置为 microSD 的实际位置，否则可能会造成数据损失。
-
-烧写之后，将 microSD 插入到 Maix 系列开发板并连接到 PC，然后在开发板上运行本章代码：
-
-.. code-block:: console
-
-   $ cd os
-   $ make run BOARD=k210
-
-内核初始化完成之后就会进入shell程序，在这里我们运行一下本章的测例 ``filetest_simple`` ：
-
-.. code-block::
-
-    >> filetest_simple
+    >> ch7b_filetest
     file_test passed!
     Shell: Process 2 exited with code 0
     >> 
 
 它会将 ``Hello, world!`` 输出到另一个文件 ``filea`` ，并读取里面的内容确认输出正确。我们也可以通过命令行工具 ``cat`` 来更直观的查看 ``filea`` 中的内容：
 
-.. code-block::
+.. code-block:: bash
 
    >> cat filea
    Hello, world!
@@ -78,7 +52,7 @@
 
 此外，在本章我们为shell程序支持了输入/输出重定向功能，可以将一个应用的输出保存到一个指定的文件。例如，下面的命令可以将 ``yield`` 应用的输出保存在文件 ``fileb`` 当中，并在应用执行完毕之后确认它的输出：
 
-.. code-block::
+.. code-block:: bash
 
    >> yield > fileb
    Shell: Process 2 exited with code 0
@@ -94,12 +68,81 @@
    Shell: Process 2 exited with code 0
    >> 
 
+本章代码树
+-----------------------------------------
+
+.. code-block:: bash 
+
+   .
+   ├── bootloader
+   │   └── rustsbi-qemu.bin
+   ├── LICENSE
+   ├── Makefile
+   ├── nfs (新增，辅助程序，要来将 .bin 打包为 os 可以识别的文件镜像)
+   │   ├── fs.c
+   │   ├── fs.h
+   │   ├── Makefile
+   │   └── types.h
+   ├── os
+   │   ├── bio.c (新增，IO buffer 的实现)
+   │   ├── bio.h
+   │   ├── console.c
+   │   ├── console.h
+   │   ├── const.h
+   │   ├── defs.h
+   │   ├── entry.S
+   │   ├── fcntl.h (新增，文件相关的一些抽象)
+   │   ├── file.c (更加完成的文件操作)
+   │   ├── file.h (更加完成的文件定义)
+   │   ├── fs.c (新增，文件系统实际逻辑)
+   │   ├── fs.h
+   │   ├── kalloc.c
+   │   ├── kalloc.h
+   │   ├── kernel.ld
+   │   ├── kernelvec.S
+   │   ├── link_app.S
+   │   ├── loader.c
+   │   ├── loader.h
+   │   ├── log.h
+   │   ├── main.c
+   │   ├── pipe.c
+   │   ├── plic.c (新增，用来处理磁盘中断)
+   │   ├── plic.h (新增，用来处理磁盘中断)
+   │   ├── printf.c
+   │   ├── printf.h
+   │   ├── proc.c
+   │   ├── proc.h
+   │   ├── riscv.h
+   │   ├── sbi.c
+   │   ├── sbi.h
+   │   ├── string.c
+   │   ├── string.h
+   │   ├── switch.S
+   │   ├── syscall.c
+   │   ├── syscall.h
+   │   ├── syscall_ids.h
+   │   ├── timer.c
+   │   ├── timer.h
+   │   ├── trampoline.S
+   │   ├── trap.c
+   │   ├── trap.h
+   │   ├── types.h
+   │   ├── virtio_disk.c (新增，用来处理磁盘中断)
+   │   ├── virtio.h (新增，用来处理磁盘中断)
+   │   ├── vm.c
+   │   └── vm.h
+   ├── README.md
+   ├── scripts
+   │   └── initproc.py (弱化的 pack.py，仅仅用来插入 INIT_PROC 符号)
+   └── user
+
 本章代码导读
 -----------------------------------------------------          
 
-本章涉及的代码量相对较多，且与进程执行相关的管理还有直接的关系。其实我们是参考经典的UNIX基于索引的文件系统，设计了一个简化的有一级目录并支持创建/打开/读写/关闭文件一系列操作的文件系统，也就是说本章。本章采用的文件系统和ext4文件系统比较类似。其中也涉及到了inode这个概念。进入本章之后，我们的测例文件一开始是存放在我们生成的“磁盘”上的，需要我们实现磁盘的读写来进行操作了。我们实现了一个简单的nfs文件系统，具体的结构将在下面的章节中说明。大家可以看一看我们本章对makefile文件的改动.
+本章涉及的代码量相对较多，且与进程执行相关的管理还有直接的关系。其实我们是参考经典的UNIX基于索引的文件系统，设计了一个简化的有一级目录并支持创建/打开/读写/关闭文件一系列操作的文件系统，也就是说本章。本章采用的文件系统和ext4文件系统比较类似。其中也涉及到了inode这个概念。进入本章之后，我们的测例文件一开始是存放在我们生成的“磁盘”上的，需要我们实现磁盘的读写来进行操作了。我们实现了一个简单的 nfs 文件系统，具体的结构将在下面的章节中说明。大家可以看一看我们本章对 makefile 文件的改动.
 
 .. code-block:: Makefile
+
    QEMU = qemu-system-riscv64
    QEMUOPTS = \
       -nographic \
@@ -107,9 +150,7 @@
       -machine virt \
       -bios $(BOOTLOADER) \
       -kernel kernel	\
-   +	-drive file=$(U)/fs-copy.img,if=none,format=raw,id=x0 \       # 以 user/fs-copy.img 作为磁盘镜像
-   +   -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0      # 虚拟 virtio 磁盘设备
-
-需要注意一定要确保user测例生成的img文件在对应的位置，否则会make run失败。
+   +	-drive file=$(U)/fs.img,if=none,format=raw,id=x0 \       # 以 user/fs.img 作为磁盘镜像
+   +  -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0      # 虚拟 virtio 磁盘设备
 
 我们OS的读写文件操作均在内核态进行，由于不确定读写磁盘的结束时间，这意味着我们需要新的中断方式——外部中断来提醒OS读写结束了。而要在内核态引入中断意味着我们不得不短暂开启在内核态的嵌套中断。一旦OS打开了文件，那么我们就可以获得文件对应的fd了(实际上lab6中我们做了类似的事情），就可以使用sys_write/sys_read对文件进行读写操作。
