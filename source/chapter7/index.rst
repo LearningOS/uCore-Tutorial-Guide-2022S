@@ -7,4 +7,6 @@
    0intro
    1fs-interface
    2fs-implementation
-   3exercise
+   3disk-based-loader 
+   4exec-with-argv
+   5exercise
