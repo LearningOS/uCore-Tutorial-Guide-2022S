@@ -14,47 +14,47 @@ exec会调用bin_loader,将对应文件名的测例加载到指定的进程p之�
 .. code-block:: c
     :linenos:
 
-int bin_loader(uint64 start, uint64 end, struct proc *p)
-{
-	void *page;
-    // 注意现在我们不要求对其了，代码的核心逻辑还是把 [start, end) 
-    // 映射到虚拟内存的 [BASE_ADDRESS, BASE_ADDRESS + length)
-	uint64 pa_start = PGROUNDDOWN(start);
-	uint64 pa_end = PGROUNDUP(end);
-	uint64 length = pa_end - pa_start;
-	uint64 va_start = BASE_ADDRESS;
-	uint64 va_end = BASE_ADDRESS + length;
-    // 不再一次 map 很多页面，而是逐页 map，为什么？
-	for (uint64 va = va_start, pa = pa_start; pa < pa_end;
-	     va += PGSIZE, pa += PGSIZE) {
-        // 这里我们不会直接映射，而是新分配一个页面，然后使用 memmove 进行拷贝
-        // 这样就不会有对其的问题了，但为何这么做其实有更深层的原因。
-		page = kalloc();
-		memmove(page, (const void *)pa, PGSIZE);
-        // 这个 if 就是为了防止 start end 不对其导致拷贝了多余的内核数据
-        // 我们需要手动把它们清空
-		if (pa < start) {
-			memset(page, 0, start - va);
-		} else if (pa + PAGE_SIZE > end) {
-			memset(page + (end - pa), 0, PAGE_SIZE - (end - pa));
-		}
-        mappages(p->pagetable, va, PGSIZE, (uint64)page, PTE_U | PTE_R | PTE_W | PTE_X);
-	}
-	// 同 lab4 map user stack
-	p->ustack = va_end + PAGE_SIZE;
-	for (uint64 va = p->ustack; va < p->ustack + USTACK_SIZE;
-	     va += PGSIZE) {
-		page = kalloc();
-		memset(page, 0, PGSIZE);
-		mappages(p->pagetable, va, PGSIZE, (uint64)page, PTE_U | PTE_R | PTE_W);
-	}
-    // 设置 trapframe
-	p->trapframe->sp = p->ustack + USTACK_SIZE;
-	p->trapframe->epc = va_start;
-	p->max_page = PGROUNDUP(p->ustack + USTACK_SIZE - 1) / PAGE_SIZE;
-	p->state = RUNNABLE;
-	return 0;
-}
+    int bin_loader(uint64 start, uint64 end, struct proc *p)
+    {
+        void *page;
+        // 注意现在我们不要求对其了，代码的核心逻辑还是把 [start, end) 
+        // 映射到虚拟内存的 [BASE_ADDRESS, BASE_ADDRESS + length)
+        uint64 pa_start = PGROUNDDOWN(start);
+        uint64 pa_end = PGROUNDUP(end);
+        uint64 length = pa_end - pa_start;
+        uint64 va_start = BASE_ADDRESS;
+        uint64 va_end = BASE_ADDRESS + length;
+        // 不再一次 map 很多页面，而是逐页 map，为什么？
+        for (uint64 va = va_start, pa = pa_start; pa < pa_end;
+            va += PGSIZE, pa += PGSIZE) {
+            // 这里我们不会直接映射，而是新分配一个页面，然后使用 memmove 进行拷贝
+            // 这样就不会有对其的问题了，但为何这么做其实有更深层的原因。
+            page = kalloc();
+            memmove(page, (const void *)pa, PGSIZE);
+            // 这个 if 就是为了防止 start end 不对其导致拷贝了多余的内核数据
+            // 我们需要手动把它们清空
+            if (pa < start) {
+                memset(page, 0, start - va);
+            } else if (pa + PAGE_SIZE > end) {
+                memset(page + (end - pa), 0, PAGE_SIZE - (end - pa));
+            }
+            mappages(p->pagetable, va, PGSIZE, (uint64)page, PTE_U | PTE_R | PTE_W | PTE_X);
+        }
+        // 同 lab4 map user stack
+        p->ustack = va_end + PAGE_SIZE;
+        for (uint64 va = p->ustack; va < p->ustack + USTACK_SIZE;
+            va += PGSIZE) {
+            page = kalloc();
+            memset(page, 0, PGSIZE);
+            mappages(p->pagetable, va, PGSIZE, (uint64)page, PTE_U | PTE_R | PTE_W);
+        }
+        // 设置 trapframe
+        p->trapframe->sp = p->ustack + USTACK_SIZE;
+        p->trapframe->epc = va_start;
+        p->max_page = PGROUNDUP(p->ustack + USTACK_SIZE - 1) / PAGE_SIZE;
+        p->state = RUNNABLE;
+        return 0;
+    }
 
 其中，对于用户栈、trapframe、trampoline 的映射没有变化，但是对 .bin 数据的映射似乎面目全非了，竟然由一个循环完成。其实，这个循环的逻辑十分简单，就是对于 .bin 的每一页，都申请一个新页并进行内容拷贝，最后建立这一页的映射。之所以这么麻烦完全是由于我们的物理内存管理过于简陋，一次只能分配一个页，如果能够分配连续的物理页，那么这个循环可以被一个 mappages 替代。
 

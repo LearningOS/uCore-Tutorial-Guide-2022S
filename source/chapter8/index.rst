@@ -1,12 +1,8 @@
-第八章：I/O设备管理
+第八章：拓展实验
 ==============================================
 
 .. toctree::
    :maxdepth: 4
 
-   0intro
-   1io-interface
-   2device-driver-1
-   2device-driver-2
-   4exercise
+   0exercise
    

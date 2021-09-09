@@ -25,8 +25,7 @@ chapter7练习
 
     - syscall ID: 56
     - 功能：打开一个文件，并返回可以访问它的文件描述符。
-    - C 接口： ``int open(int dirfd, char* path, unsigned int flags, unsigned int mode);``
-    - Rust 接口： ``fn open(dirfd: usize, path: *const u8, flags: u32, mode: u32);``
+    - 接口： ``int open(int dirfd, char* path, unsigned int flags, unsigned int mode);``
     - 参数：
         - **dirfd** : 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)。可以忽略。
         - **path** 描述要打开的文件的文件名（简单起见，文件系统不需要支持目录，所有的文件都放在根目录 ``/`` 下）
@@ -52,8 +51,7 @@ chapter7练习
 
     * syscall ID: 37
     * 功能：创建一个文件的一个硬链接， `linkat标准接口 <https://linux.die.net/man/2/linkat>`_ 。
-    * Ｃ接口： ``int linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, unsigned int flags)``
-    * Rust 接口： ``fn linkat(olddirfd: i32, oldpath: *const u8, newdirfd: i32, newpath: *const u8, flags: u32) -> i32``
+    * 接口： ``int linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, unsigned int flags)``
     * 参数：
         * olddirfd，newdirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
         * flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。
@@ -69,8 +67,7 @@ chapter7练习
 
     * syscall ID: 35
     * 功能：取消一个文件路径到文件的链接, `unlinkat标准接口 <https://linux.die.net/man/2/unlinkat>`_ 。
-    * Ｃ接口： ``int unlinkat(int dirfd, char* path, unsigned int flags)``
-    * Rust 接口： ``fn unlinkat(dirfd: i32, path: *const u8, flags: u32) -> i32``
+    * 接口： ``int unlinkat(int dirfd, char* path, unsigned int flags)``
     * 参数：
         * dirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
         * flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。

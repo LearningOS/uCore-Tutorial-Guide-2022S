@@ -99,6 +99,7 @@
 地址空间 ``MemorySet`` 的方法如下：
 
 .. code-block:: rust
+
     :linenos:
 
     // os/src/mm/memory_set.rs
@@ -149,6 +150,7 @@
 提供的另外几个方法：
 
 .. code-block:: rust
+
     :linenos:
     
     // os/src/mm/memory_set.rs
