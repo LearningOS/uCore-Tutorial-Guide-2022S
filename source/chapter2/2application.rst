@@ -54,7 +54,7 @@ ecall作为异常的一种，操作系统和CPU对它的处理方式其实和其
 
 需要注意的是这些寄存器是S态的CSR寄存器。M态还有一套自己的CSR寄存器mcause，mtvec... 
 
-所以当U态执行ecall指令的时候就产生了异常。此时CPU会处理各个CSR寄存器，之后跳转至stvec所指向的地址，也就是我们的异常处理函数。我们的os的这个函数的具体位置是在trap_init函数之中就指定了——是uservec函数。这个函数位于trampoline.S之中，是由汇编语言编写的。在uservec之中，os保存了U态执行流的各个寄存器的值。这些值的位置其实已经由trap.h中的trapframe结构体规定好了:
+所以当U态执行ecall指令的时候就产生了异常。此时CPU会处理上述的各个CSR寄存器，之后跳转至stvec所指向的地址，也就是我们的异常处理函数。我们的os的这个函数的具体位置是在trap_init函数之中就指定了——是uservec函数。这个函数位于trampoline.S之中，是由汇编语言编写的。在uservec之中，os保存了U态执行流的各个寄存器的值。这些值的位置其实已经由trap.h中的trapframe结构体规定好了:
 
 .. code-block:: c
 
@@ -86,5 +86,31 @@ ecall作为异常的一种，操作系统和CPU对它的处理方式其实和其
 该函数完成异常中断处理与返回，包括执行我们写好的syscall。
 
 从S态返回U态是由 usertrapret 函数实现的。这里设置了返回地址sepc，并调用另外一个 userret 汇编函数来恢复 trapframe 结构体之中的保存的U态执行流数据。最后执行sret指令，从S态回到U态，并将PC移动到sepc指定的位置。
+
+.. code-block:: c
+
+    // os/trap.c
+    // 在这里回到U态继续执行用户程序。
+    void usertrapret(struct trapframe *trapframe, uint64 kstack)
+    {
+        trapframe->kernel_satp = r_satp(); // 本章无用
+        trapframe->kernel_sp = kstack + PGSIZE; // process's kernel stack
+        trapframe->kernel_trap = (uint64)usertrap; // 设置了handler
+        trapframe->kernel_hartid = r_tp(); // hartid for cpuid()
+
+        w_sepc(trapframe->epc);
+        // set up the registers that trampoline.S's sret will use
+        // to get to user space.
+
+        // set S Previous Privilege mode to User.
+        uint64 x = r_sstatus();
+        x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
+        x |= SSTATUS_SPIE; // enable interrupts in user mode
+        w_sstatus(x);
+
+        // tell trampoline.S the user page table to switch to.
+        // uint64 satp = MAKE_SATP(p->pagetable);
+        userret((uint64)trapframe);
+    }
 
 这个过程中还有许多细节，大家将在课后习题中慢慢品味。
