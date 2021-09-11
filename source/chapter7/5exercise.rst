@@ -5,7 +5,7 @@ chapter7练习
 
 本章任务
 -----------------------------------------------
-- ch7b_usertest
+- ``ch7b_usertest`` ``ch7_mergetest`` 
 - merge ch6 的改动，然后再次测试 ch6_usertest 和 ch7b_usertest。
 - 完成本章问答作业。
 - 完成本章编程作业。
@@ -116,7 +116,7 @@ chapter7练习
                 }
             }
 
-正确实现后，你的 os 应该能够正确运行 ch7_* 对应的一些测试用例，在 shell 中执行 ch7_usertest 来执行测试。
+正确实现后，你的 os 应该能够正确运行 ch7_file* 对应的测试用例，在 shell 中执行 ch7_usertest 来执行测试。
 
 Tips
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
