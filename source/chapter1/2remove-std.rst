@@ -85,16 +85,8 @@ makefile 内部
    run: $(BUILDDIR)/kernel
    $(QEMU) $(QEMUOPTS)
 
-这个就是最关键的地方:make run。我们查看这条指令的结构，它首先执行上面 kernel 所需要的链接以及编译操作得到一个二进制的kernel。之后执行按照QEMUOPTS变量指定的参数启动qemu。QEMUOPTS意义如下：
-
-- nographic: 无图形界面
-- smp 1: 单核 (默认值，可以省略)
-- machine virt: 模拟硬件 RISC-V VirtIO Board
-- bios $(bios): 使用制定 bios，这里指向的是我们提供的 rustsbi 的bin文件。
-- kernel： 使用 elf 格式的 kernel。
+这里和前面一致。大家不需要太关心qemu的更多细节，我们涉及它的操作已经在makefile和sbi之中处理了。
   
-因此qemu会按照上述的参数启动，使用我们的rustsbi来进行一系列初始化，并将程序计数器移动至0x80200000并开始执行我们的OS。我们之后所有执行测试都是使用的make run指令。
-
 gdb 调试
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

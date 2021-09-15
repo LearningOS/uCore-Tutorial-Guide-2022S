@@ -72,7 +72,53 @@ ecall作为异常的一种，操作系统和CPU对它的处理方式其实和其
         /* 280 */ uint64 t6;
     };
 
-然后就跳转到了我们早先设定在 trapframe->kernel_trap 中的地址，也就是 trap.c 之中的 usertrap 函数。这个函数在main的初始化之中已经调用了。
+由于涉及到直接操作寄存器，因此这里只能使用汇编语言来编写。具体可以参考trampoline.S之中的代码:
+
+.. code-block:: c
+
+        .section .text
+    .globl trampoline
+    trampoline:
+    .align 4
+    .globl uservec
+    uservec:
+        #
+        # trap.c sets stvec to point here, so
+        # traps from user space start here,
+        # in supervisor mode, but with a
+        # user page table.
+        #
+        # sscratch points to where the process's p->trapframe is
+        # mapped into user space, at TRAPFRAME.
+        #
+
+        # swap a0 and sscratch
+        # so that a0 is TRAPFRAME
+        csrrw a0, sscratch, a0
+
+        # save the user registers in TRAPFRAME
+        sd ra, 40(a0)
+        ...
+        sd t6, 280(a0)
+
+        # save the user a0 in p->trapframe->a0
+        csrr t0, sscratch
+        sd t0, 112(a0)
+
+        csrr t1, sepc
+        sd t1, 24(a0)
+
+        ld sp, 8(a0)
+        ld tp, 32(a0)
+        ld t1, 0(a0)
+        # csrw satp, t1
+        # sfence.vma zero, zero
+        ld t0, 16(a0)
+        jr t0
+
+这里需要注意sscratch这个CSR寄存器的作用就是一个cache，它只负责存某一个值，这里它保存的就是TRAPFRAME结构体的位置。csrr和csrrw指令是RV特供的读写CSR寄存器的指令。我们取用它的值的时候实际把原来a0的值和其交换了，因此返回时大家可以看到我们会再交换一次得到原来的a0。这里注释了两句代码大家可以不用管，这是页表相关的处理，我们在ch4会仔细了解它。
+
+然后我们使用jr t0,就跳转到了我们早先设定在 trapframe->kernel_trap 中的地址，也就是 trap.c 之中的 usertrap 函数。这个函数在main的初始化之中已经调用了。
 
 .. code-block:: c
 

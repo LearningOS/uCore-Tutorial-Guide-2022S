@@ -9,7 +9,6 @@
    0intro
    1app-ee-platform
    2remove-std
-   3understand-prog
-   4exercise
+   3exercise
 
 
