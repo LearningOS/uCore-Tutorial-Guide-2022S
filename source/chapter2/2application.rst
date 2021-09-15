@@ -131,20 +131,18 @@ ecall作为异常的一种，操作系统和CPU对它的处理方式其实和其
 
 该函数完成异常中断处理与返回，包括执行我们写好的syscall。
 
-从S态返回U态是由 usertrapret 函数实现的。这里设置了返回地址sepc，并调用另外一个 userret 汇编函数来恢复 trapframe 结构体之中的保存的U态执行流数据。最后执行sret指令，从S态回到U态，并将PC移动到sepc指定的位置。
+从S态返回U态是由 usertrapret 函数实现的。这里设置了返回地址sepc，并调用另外一个 userret 汇编函数来恢复 trapframe 结构体之中的保存的U态执行流数据。
 
 .. code-block:: c
 
-    // os/trap.c
-    // 在这里回到U态继续执行用户程序。
     void usertrapret(struct trapframe *trapframe, uint64 kstack)
     {
-        trapframe->kernel_satp = r_satp(); // 本章无用
+        trapframe->kernel_satp = r_satp(); // kernel page table
         trapframe->kernel_sp = kstack + PGSIZE; // process's kernel stack
-        trapframe->kernel_trap = (uint64)usertrap; // 设置了handler
+        trapframe->kernel_trap = (uint64)usertrap;
         trapframe->kernel_hartid = r_tp(); // hartid for cpuid()
 
-        w_sepc(trapframe->epc);
+        w_sepc(trapframe->epc); // 设置了sepc寄存器的值。
         // set up the registers that trampoline.S's sret will use
         // to get to user space.
 
@@ -159,4 +157,47 @@ ecall作为异常的一种，操作系统和CPU对它的处理方式其实和其
         userret((uint64)trapframe);
     }
 
-这个过程中还有许多细节，大家将在课后习题中慢慢品味。
+同样由于涉及寄存器的恢复，以及未来页表satp寄存器的设置等，userret也必须是一个汇编函数。它基本上就是uservec函数的镜像，将保存在trapframe之中的数据依次读出用于恢复对应的寄存器，实现恢复用户中断前的状态。
+
+.. code-block:: c
+
+    .globl userret
+    userret:
+        # userret(TRAPFRAME, pagetable)
+        # switch from kernel to user.
+        # usertrapret() calls here.
+        # a0: TRAPFRAME, in user page table.
+        # a1: user page table, for satp.
+
+        # switch to the user page table.在第四章才会有具体作用。
+        csrw satp, a1
+        sfence.vma zero, zero
+
+        # put the saved user a0 in sscratch, so we
+        # can swap it with our a0 (TRAPFRAME) in the last step.
+        ld t0, 112(a0)
+        csrw sscratch, t0
+
+        # restore all but a0 from TRAPFRAME
+        ld ra, 40(a0)
+        ld sp, 48(a0)
+        ld gp, 56(a0)
+        ld tp, 64(a0)
+        ld t0, 72(a0)
+        ld t1, 80(a0)
+        ld t2, 88(a0)
+        ...
+        ld t4, 264(a0)
+        ld t5, 272(a0)
+        ld t6, 280(a0)
+
+        # restore user a0, and save TRAPFRAME in sscratch
+        csrrw a0, sscratch, a0
+
+        # return to user mode and user pc.
+        # usertrapret() set up sstatus and sepc.
+        sret
+
+需要注意最后执行的sret指令执行了2个事情：从S态回到U态，并将PC移动到sepc指定的位置，继续执行用户程序。
+
+这个过程中还有一些细节，大家将在课后习题中慢慢品味。
