@@ -27,6 +27,7 @@ chapter4练习
 完成后你应该能够正确执行 ch3b_sleep* 对应的测例。通过 ``make test CHAPTER=4_3 BASE=1`` 来测试你的实现。
 
 tips:
+
 - 抄框架其他传指针的 syscall 实现。
 
 mmap 匿名映射
@@ -74,6 +75,7 @@ munmap 系统调用新定义：
 正确实现后，你的 os 应该能够正确运行 ch4_* 对应的一些测试用例，``make test BASE=0`` 来执行测试。
 
 tips:
+
 - 匿名映射的页可以使用 kalloc() 得到。
 - 注意 kalloc 不支持连续物理内存分配，所以你必须把多个页的 mmap 逐页进行映射。
 - 一定要注意 mmap 是的页表项，注意 riscv 页表项的格式与 port 的区别。

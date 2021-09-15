@@ -32,6 +32,7 @@ spawn 系统调用定义( `标准spawn看这里 <https://man7.org/linux/man-page
 实现完成之后，你应该能通过 ch5_spawn* 对应的所有测例，在 shell 中执行 ch5_usertest 来执行所有测试。
 
 tips:
+
 - 注意 fork 的执行流，新进程 context 的 ra 和 sp 与父进程不同。所以你不能在内核中通过 fork 和 exec 的简单组合实现 spawn。 
 - 在 spawn 中不应该有任何形式的内存拷贝。
 
@@ -42,6 +43,43 @@ tips:
 
 2. [选做，不占分] 其实使用了题(1)的策略之后，fork + exec 所带来的无效资源的问题已经基本被解决了，但是今年来 fork 还是在被不断的批判，那么到底是什么正在"杀死"fork？回答合理即可。可以参考 `fork-hotos19 <https://www.microsoft.com/en-us/research/uploads/prod/2019/04/fork-hotos19.pdf>`_ 。
 
+3. 请阅读代码并分析如下程序的输出，不考虑运行错误，不考虑行缓冲：
+    
+    .. code-block:: c 
+
+    int main(){
+        int val = 2;
+        
+        printf("%d", 0);
+        int pid = fork();
+        if (pid == 0) {
+            val++;
+            printf("%d", val);
+        } else {
+            val--;
+            printf("%d", val);
+            wait(NULL);
+        }
+        val++;
+        printf("%d", val);
+        return 0;
+    } 
+
+
+    如果 fork() 之后一定主程序先运行结果如何？如果 fork() 之后一定 child 先运行结果如何？
+
+
+4. 请分析如下程序运行后最终输出 `A` 的数量(已知 ``||`` 的优先级比 ``&&`` 高)：
+
+    .. code-block:: c 
+
+    int main() {
+        fork() && fork() && fork() || fork() && fork() || fork() && fork();
+        printf("A");
+        return 0' 
+    }
+
+    [选做，不占分] 更进一步，如果给出一个 ``&&`` ``||`` 的序列，你如何设计一个程序来得到答案？
 
 报告要求
 ---------------------------------------
