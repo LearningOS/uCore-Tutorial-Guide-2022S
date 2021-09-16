@@ -28,7 +28,7 @@ chapter1练习
 
 tips: 
 
-  - 事实上进入 rustsbi 之后就不需要使用 gdb 调试了。可以直接阅读代码。 `rustsbi起始代码 <https://github.com/rustsbi/rustsbi-qemu/blob/main/rustsbi-qemu/src/main.rs#L146>`_ 。
+  - 事实上进入 rustsbi 之后就不需要使用 gdb 调试了。可以直接阅读代码。 `rustsbi起始代码 <https://github.com/rustsbi/rustsbi-qemu/blob/7d71bfb7b3ad8e36f06f92c2ffe2066bbb0f9254/rustsbi-qemu/src/main.rs#L56>`_ 。
   - 可以使用示例代码 Makefile 中的 ``make debug`` 指令。
   - 一些可能用到的 gdb 指令：
       - ``x/10i 0x80000000`` : 显示 0x80000000 处的10条汇编指令。
