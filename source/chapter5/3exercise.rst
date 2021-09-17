@@ -43,27 +43,27 @@ tips:
 
 2. [选做，不占分] 其实使用了题(1)的策略之后，fork + exec 所带来的无效资源的问题已经基本被解决了，但是今年来 fork 还是在被不断的批判，那么到底是什么正在"杀死"fork？回答合理即可。可以参考 `fork-hotos19 <https://www.microsoft.com/en-us/research/uploads/prod/2019/04/fork-hotos19.pdf>`_ 。
 
-3. 请阅读代码并分析如下程序的输出，不考虑运行错误，不考虑行缓冲：
+3. 请阅读代码并分析如下程序的输出，不考虑运行错误，不考虑行缓冲，不考虑中断：
     
     .. code-block:: c 
 
-    int main(){
-        int val = 2;
-        
-        printf("%d", 0);
-        int pid = fork();
-        if (pid == 0) {
+        int main(){
+            int val = 2;
+            
+            printf("%d", 0);
+            int pid = fork();
+            if (pid == 0) {
+                val++;
+                printf("%d", val);
+            } else {
+                val--;
+                printf("%d", val);
+                wait(NULL);
+            }
             val++;
             printf("%d", val);
-        } else {
-            val--;
-            printf("%d", val);
-            wait(NULL);
-        }
-        val++;
-        printf("%d", val);
-        return 0;
-    } 
+            return 0;
+        } 
 
 
     如果 fork() 之后一定主程序先运行结果如何？如果 fork() 之后一定 child 先运行结果如何？
@@ -73,11 +73,11 @@ tips:
 
     .. code-block:: c 
 
-    int main() {
-        fork() && fork() && fork() || fork() && fork() || fork() && fork();
-        printf("A");
-        return 0' 
-    }
+        int main() {
+            fork() && fork() && fork() || fork() && fork() || fork() && fork();
+            printf("A");
+            return 0' 
+        }
 
     [选做，不占分] 更进一步，如果给出一个 ``&&`` ``||`` 的序列，你如何设计一个程序来得到答案？
 
