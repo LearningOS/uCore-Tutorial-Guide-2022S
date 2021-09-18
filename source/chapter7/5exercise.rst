@@ -82,39 +82,29 @@ chapter7练习
 
     * syscall ID: 80
     * 功能：获取文件状态。
-    * Ｃ接口： ``int fstat(int fd, struct Stat* st)``
-    * Rust 接口： ``fn fstat(fd: i32, st: *mut Stat) -> i32``
+    * 接口： ``int fstat(int fd, struct Stat* st)``
     * 参数：
         * fd: 文件描述符
         * st: 文件状态结构体
 
-        .. code-block:: rust
+        .. code-block:: c
 
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct Stat {
-                /// 文件所在磁盘驱动器号
-                pub dev: u64,
-                /// inode 文件所在 inode 编号
-                pub ino: u64,
-                /// 文件类型
-                pub mode: StatMode,
-                /// 硬链接数量，初始为1
-                pub nlink: u32,
-                /// 无需考虑，为了兼容性设计
-                pad: [u64; 7],
+            struct Stat {
+                uint64 dev,     // 文件所在磁盘驱动器号
+                uint64 ino,     // inode 文件所在 inode 编号
+                uint32 mode,    // 文件类型
+                uint32 nlink,   // 硬链接数量，初始为1
+                uint64 pad[7],  // 无需考虑，为了兼容性设计
             }
+      
+            // 文件类型只需要考虑:
+            #define DIR 0x040000		// directory
+            #define FILE 0x100000		// ordinary regular file
             
-            /// StatMode 定义：
-            bitflags! {
-                pub struct StatMode: u32 {
-                    const NULL  = 0;
-                    /// directory
-                    const DIR   = 0o040000;
-                    /// ordinary regular file
-                    const FILE  = 0o100000;
-                }
-            }
+    * 返回值：如果出现了错误则返回 -1，否则返回 0。
+    * 可能的错误
+      * fd 无效。
+      * st 地址非法。
 
 正确实现后，你的 os 应该能够正确运行 ch7_file* 对应的测试用例，在 shell 中执行 ch7_usertest 来执行测试。
 
