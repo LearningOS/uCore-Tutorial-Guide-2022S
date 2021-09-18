@@ -85,7 +85,8 @@ C 开发环境配置
 .. code-block:: bash
    
    cd /usr/local
-   sudo wget https://cloud.tsinghua.edu.cn/f/b07bac9bcfa14f1dae66/?dl=1
+   sudo wget https://cloud.tsinghua.edu.cn/f/b07bac9bcfa14f1dae66/?dl=1 && mv index.html\?dl\=1 riscv64-linux-musl-cross.tgz
+
    tar xzvf riscv64-linux-musl-cross.tgz
 
 将路径添加到PATH之中:
