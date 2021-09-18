@@ -85,7 +85,7 @@ C 开发环境配置
 .. code-block:: bash
    
    cd /usr/local
-   sudo wget https://more.musl.cc/9.2.1-20190831/x86_64-linux-musl/riscv64-linux-musl-cross.tgz
+   sudo wget https://cloud.tsinghua.edu.cn/f/b07bac9bcfa14f1dae66/?dl=1
    tar xzvf riscv64-linux-musl-cross.tgz
 
 将路径添加到PATH之中:
