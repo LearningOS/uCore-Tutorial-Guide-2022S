@@ -51,6 +51,8 @@ OS是怎么跑起来的？
 qemu是怎么跑起来的？
 -------------------------------
 
+qemu 拓展阅读: `qemu参数 <https://www.qemu.org/docs/master/system/invocation.html>`_ 。
+
 第0章大家配置好了qemu之后可能就没再打开过了。qemu做为模拟器用途很多，操作也比较复杂。因此我们在makefile之中提供了具体运行qemu所需要的参数，大家无需更改。
 
 .. code-block:: makefile
@@ -162,6 +164,8 @@ os文件夹下存放了所有我们构建操作系统的源代码，是本次实
 - sbi.c
    printf 的实现在 printf.c，在函数之中我们完成了对 format 字符串的解析工作。那么我们是如何把字符串真正地打印到 shell 上的呢？ 我们 调用consputc 函数输出一个 char 到 shell，而 consputc 函数其实就是调用了 sbi.c 之中的 console_putchar 函数。这个　console_putchar 函数的本质是调用了 sbi_call。剥开层层套娃，大家可以发现打印的最终实现是使用 sbi 帮助我们包装好的 ecall 汇编代码，通过指定 ecall 的 idx 为 SBI_CONSOLE_PUTCHAR, 并将我们的字符做为参数传入到 ecall 指定的寄存器之中完成一次系统调用来实现的。
    本来，作为一个 OS，串口输出(也就是输出到 shell)的事情也应该我们自己来做，但这里为了简化这些硬件强相关的实现，我们利用 rust-sbi 的 M 态支持。这也是 riscv 灵活性的一个体现。
+
+   rustsbi 拓展阅读：`rsutsbi <https://rcore-os.github.io/rCore-Tutorial-Book-v3/appendix-c/index.html>`_ 。
 
 bootloader文件夹
 -------------------------------
