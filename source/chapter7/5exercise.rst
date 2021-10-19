@@ -19,33 +19,7 @@ chapter7练习
 
 你的电脑桌面是咋样的？是放满了图标吗？反正我的 windows 是这样的。显然很少人会真的把可执行文件放到桌面上，桌面图标其实都是一些快捷方式。或者用 unix 的术语来说：软链接。为了减少工作量，我们今天来实现软链接的兄弟： `硬链接 <https://en.wikipedia.org/wiki/Hard_link>`_ 。
 
-硬链接要求两个不同的目录项指向同一个文件，在我们的文件系统中也就是两个不同名称目录项指向同一个磁盘块。本节要求实现三个系统调用 ``sys_linkat、sys_unlinkat、sys_stat`` 。注意在测例中 ``sys_open`` 的接口定义也发生了变化。
-
-**open**
-
-    - syscall ID: 56
-    - 功能：打开一个文件，并返回可以访问它的文件描述符。
-    - 接口： ``int open(int dirfd, char* path, unsigned int flags, unsigned int mode);``
-    - 参数：
-        - **dirfd** : 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)。可以忽略。
-        - **path** 描述要打开的文件的文件名（简单起见，文件系统不需要支持目录，所有的文件都放在根目录 ``/`` 下）
-        - **flags** 描述打开文件的标志，具体含义（其他参数不考虑）：
-          
-          .. code-block:: c
-
-                #define O_RDONLY  0x000
-                #define O_WRONLY  0x001
-                #define O_RDWR    0x002		// 可读可写
-                #define O_CREATE  0x200
-
-        - **mode** 仅在创建文件时有用，表示创建文件的访问权限，为了简单，本次实验中中统一为 *O_RDWR* 。
-    - 说明：
-        - 有 create 标志但文件存在时，忽略 create 标志，直接打开文件。
-    - 返回值：如果出现了错误则返回 -1，否则返回可以访问给定文件的文件描述符。
-    - 可能的错误：
-        - 文件不存在且无 create 标志。
-        - 标志非法（低两位为 0x3）
-        - 打开文件数量达到上限。
+硬链接要求两个不同的目录项指向同一个文件，在我们的文件系统中也就是两个不同名称目录项指向同一个磁盘块。本节要求实现三个系统调用 ``sys_linkat、sys_unlinkat、sys_stat`` 。
   
 **linkat**：
 
@@ -82,39 +56,29 @@ chapter7练习
 
     * syscall ID: 80
     * 功能：获取文件状态。
-    * Ｃ接口： ``int fstat(int fd, struct Stat* st)``
-    * Rust 接口： ``fn fstat(fd: i32, st: *mut Stat) -> i32``
+    * 接口： ``int fstat(int fd, struct Stat* st)``
     * 参数：
         * fd: 文件描述符
         * st: 文件状态结构体
 
-        .. code-block:: rust
+        .. code-block:: c
 
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct Stat {
-                /// 文件所在磁盘驱动号，该实现写死为 0 即可。
-                pub dev: u64,
-                /// inode 文件所在 inode 编号
-                pub ino: u64,
-                /// 文件类型
-                pub mode: StatMode,
-                /// 硬链接数量，初始为1
-                pub nlink: u32,
-                /// 无需考虑，为了兼容性设计
-                pad: [u64; 7],
+            struct Stat {
+                uint64 dev,     // 文件所在磁盘驱动号，该实现写死为 0 即可。
+                uint64 ino,     // inode 文件所在 inode 编号
+                uint32 mode,    // 文件类型
+                uint32 nlink,   // 硬链接数量，初始为1
+                uint64 pad[7],  // 无需考虑，为了兼容性设计
             }
+      
+            // 文件类型只需要考虑:
+            #define DIR 0x040000		// directory
+            #define FILE 0x100000		// ordinary regular file
             
-            /// StatMode 定义：
-            bitflags! {
-                pub struct StatMode: u32 {
-                    const NULL  = 0;
-                    /// directory
-                    const DIR   = 0o040000;
-                    /// ordinary regular file
-                    const FILE  = 0o100000;
-                }
-            }
+    * 返回值：如果出现了错误则返回 -1，否则返回 0。
+    * 可能的错误
+      * fd 无效。
+      * st 地址非法。
 
 正确实现后，你的 os 应该能够正确运行 ch7_file* 对应的测试用例，在 shell 中执行 ch7_usertest 来执行测试。
 
@@ -137,5 +101,6 @@ Tips
 报告要求
 -----------------------------------------------------------
 - 注明姓名学号。
+- 简单总结本次实验你新添加的代码。
 * 完成 ch7 问答问题
 * (optional) 你对本次实验设计及难度的看法。

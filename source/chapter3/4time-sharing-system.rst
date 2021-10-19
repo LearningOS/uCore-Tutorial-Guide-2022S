@@ -250,14 +250,13 @@ syscall 标准定义如下：
 
 为了避免 S 特权级时钟中断被屏蔽，我们需要在执行第一个应用之前进行一些初始化设置：
 
-.. code-block:: rust
+.. code-block:: c
     :linenos:
     :emphasize-lines: 9,10
 
-    // os/src/main.rs
+    // os/main.c
 
-    #[no_mangle]
-    pub fn rust_main() -> ! {
+    void main{
         // ...
         timer_init();
         // ...
