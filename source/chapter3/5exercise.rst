@@ -12,114 +12,172 @@ chapter3练习
 - 进一步思考 stride 调度算法，完成本章问答作业。
 - 最终，完成实验报告并 push 你的 ch3 分支到远程仓库。ch3报告要求_ 。push 代码后会自动执行 CI，代码给分以 CI 给分为准。
 
-编程作业
---------------------------------------
+读取目录信息
++++++++++++++++++++++++++++++++
 
-sys_write 参数检查
+.. note::
+
+    本实验为用户态实验，请在 Linux 环境下完成。
+
+在 Linux 中，我们可以用 `ls` 命令列出某个目录下的文件名，也可以用 `pwd` 命令显示当前工作目录。现在我们来自己实现这两个功能，简单起见，可以不需要考虑额外参数，仅显示程序所在的目录信息和文件名即可。
+
+.. hint:: 或许可以派上用场的系统调用和 C 库函数： `getcwd`, `getwd`, `open`, `opendir`, `readdir`, `getdents`
+
+获取任务信息
+++++++++++++++++++++++++++
+
+ch3 中，我们的系统已经能够支持多个任务分时轮流运行，我们希望引入一个新的系统调用 ``sys_task_info`` 以获取任务的信息，定义如下：
+
+.. code-block:: C
+
+    int sys_task_info(unsigned int id, TaskInfo *ts);
+
+- syscall ID: 410
+- 根据任务 ID 查询任务信息，任务信息包括任务 ID、任务控制块相关信息（任务状态）、任务使用的系统调用及调用次数、任务总运行时长。
+
+.. code-block:: C
+
+    struct TaskInfo {
+        unsigned int id,
+        TaskStatus status,
+        SyscallInfo[MAX_SYSCALL_NUM] call,
+        int time
+    };
+
+- 系统调用信息采用数组形式对每个系统调用的次数进行统计，相关结构定义如下：
+
+.. code-block:: C
+
+    struct SyscallInfo {
+        unsigned int id,
+        unsigned int times
+    };
+
+- 参数：
+    - id: 待查询任务id
+    - ts: 待查询任务信息
+- 返回值：执行成功返回0，错误返回-1
+- 说明：
+    - 相关结构已在框架中给出，只需添加逻辑实现功能需求即可。
+- 提示：
+    - 大胆修改已有框架！除了配置文件，你几乎可以随意修改已有框架的内容。
+    - 程序运行时间可以通过调用 ``get_time()`` 获取。
+    - 系统调用次数可以考虑在进入内核态系统调用异常处理函数之后，进入具体系统调用函数之前维护。
+    - 阅读 proc 的实现，思考如何维护内核控制块信息（可以在控制块可变部分加入其他需要的信息）
+
+打印调用堆栈（选做）
++++++++++++++++++++++++++++++++
+
+我们在调试程序时，除了正在执行的函数外，往往还需要知道当前的调用堆栈。这样的功能通常由调试器、运行环境、 IDE 或操作系统等提供，但现在我们只能靠自己了。最基本的实现只需打印出调用链上的函数地址，更丰富的功能包括打印出函数名、函数定义、传递的参数等等。
+
+本实验我们不提供测例，仅提供参考实现，各位同学可以通过对照 GDB 、参考实现或自行构造调用链等方式检验自己的实现是否正确。
+
+.. hint:: 可以参考《编译原理》课程中关于函数调用栈帧的内容。
+
+实验要求
 +++++++++++++++++++++++++++++++++++++++++
 
-lab2 中，我们实现了第一个系统调用 ``sys_write``，这使得我们可以在用户态输出信息。但是 os 在提供服务的同时，还有保护 os 本身以及其他用户程序不受错误或者恶意程序破坏的功能。
+- 完成分支: ch3。
 
-由于还没有实现虚拟内存，我们可以在用户程序中指定一个属于其他程序或者内核的地址，并将它以字符串的形式输出，这显然是不合理的，因此我们要对 sys_write 做检查：传入缓冲区是否位于用户所属地址。也就是 ``[buf, buf + len)`` 这一段地址，是否完全属于对应用户。如果不完全属于，sys_write应该返回 -1。　
-
-实现正确后，代码应该能够通过用户测例 ch2t_write0。你可以使用 ``make test CHAPTER=3_2`` 来测试测试你的实现是否正确，如果正确 ch2t_write1 应该正确推出并输出 "Test write0 OK!"。注意，同时你还要保证 ch2b_write1 也正确执行。
-
-实现 tips:
-
-- 你可以看看测例源码，并想一想，属于用户的地址空间有哪些？提示：有两段。
-- 这些地址段位置是静态分配的吗？如何获得这些地址？
-- 你可以修改 os 目录下，除了 Makefile 之外的所有程序。放心大胆得增加你需要的函数或者变量。
-
-stride 调度算法
-+++++++++++++++++++++++++++++++++++++++++
-
-lab3中我们引入了任务调度的概念，可以在不同任务之间切换，目前我们实现的调度算法十分简单，存在一些问题且不存在优先级。现在我们要为我们的 os 实现一种带优先级的调度算法：stide 调度算法。
-
-算法描述如下:
-
-(1) 为每个进程设置一个当前 stride，表示该进程当前已经运行的“长度”。另外设置其对应的 pass 值（只与进程的优先权有关系），表示对应进程在调度后，stride 需要进行的累加值。
-
-(2) 每次需要调度时，从当前 runnable 态的进程中选择 stride 最小的进程调度。对于获得调度的进程 P，将对应的 stride 加上其对应的步长 pass。
-
-(3) 一个时间片后，回到上一步骤，重新调度当前 stride 最小的进程。
-
-可以证明，如果令 P.pass = BigStride / P.priority 其中 P.pass 为进程的 pass 值，P.priority 表示进程的优先权（大于 1），而 BigStride 表示一个预先定义的大常数，则该调度方案为每个进程分配的时间将与其优先级成正比。证明过程我们在这里略去，有兴趣的同学可以在网上查找相关资料。
-
-其他实验细节：
-
-- stride 调度要求进程优先级 :math:`\geq 2`，所以设定进程优先级 :math:`\leq 1` 会导致错误。
-- 进程初始 stride 设置为 0 即可。
-- 进程初始优先级设置为 16。
-
-实验首先要求新增 syscall ``sys_set_priority``:
-
-* 功能描述：设定进程优先级
-  * syscall ID: 140
-  * 功能：设定进程优先级。
-  * C 接口：`int setpriority(long long prio);`
-  * 说明：设定自身进程优先级，只要 prio 在 [2, isize_max] 就成功，返回 prio，否则返回 -1。
-* 针对测例
-  * `ch3_setprio`
-
-实现 sys_set_priority 之后，你可以通过　``make test CHAPTER=3`` 来进行测试。
-
-完成之后你需要调整框架的代码调度机制，是的可以设置不同进程优先级之后可以按照 stride 算法进行调度。实现正确后，代码应该能够通过用户测例 ch3t_stride*。使用 ``make test CHAPTER=3t`` 来测试测试你的实现是否正确，如果正确,ch3t_stride[x] 最终输出的 priority 和 exitcode 应该大致成正比，由于我们的时间片比较粗糙，qemu 的模拟也不是十分准确，我们最终的 CI 测试会允许最大 30% 的误差。 
-
-实现 tips:
-
-- 你应该给 proc 结构体加入新的字段来支持优先级。
-- 我们的测例运行时间不很长，不要求处理 stride 的溢出（详见问答作业，当然处理了更好）。
-- 为了减少整数除的误差，BIG_STRIDE 一般需要很大，但测例中的优先级都是 2 的整数次幂，结合第二点，BIG_STRIDE不需要太大，65536 是一个不错的数字。
-- 用户态的 printf 支持了行缓冲，所以如果你想要增加用户程序的输出，记得换行。
-- stride 算法要找到　stride 最小的进程，使用优先级队列是效率不错的办法，但是我们的实验测例很简单，所以效率完全不是问题。事实上，我很推荐使用暴力扫一遍的办法找最小值。
-- 注意设置进程的初始优先级。
-
-.. ch3问答作业::
-
-问答作业
---------------------------------------------
-
-1、stride 算法深入
-
-    stride 算法原理非常简单，但是有一个比较大的问题。例如两个 pass = 10 的进程，使用 8bit 无符号整形储存 stride， p1.stride = 255, p2.stride = 250，在 p2 执行一个时间片后，理论上下一次应该 p1 执行。
-
-    - 实际情况是轮到 p1 执行吗？为什么？
-
-    我们之前要求进程优先级 >= 2 其实就是为了解决这个问题。可以证明，**在不考虑溢出的情况下**, 在进程优先级全部 >= 2 的情况下，如果严格按照算法执行，那么 STRIDE_MAX – STRIDE_MIN <= BigStride / 2。
-
-    - 为什么？尝试简单说明（传达思想即可，不要求严格证明）。
-    
-    已知以上结论，**在考虑溢出的情况下**，假设我们通过逐个比较得到 Stride 最小的进程，请设计一个合适的比较函数，用来正确比较两个 Stride 的真正大小：
-
-    .. code-block:: c
-    
-        typedef unsigned long long Stride_t;
-        const Stride_t BIG_STRIDE = 0xffffffffffffffffULL;
-        int cmp(Stride_t a, Stride_t b) {
-            // YOUR CODE HERE
-            // return 1 if a > b
-            // return -1 if a < b
-            // return 0 if a == b
-        }
-
-
-    例子：假设使用 8 bits 储存 stride, BigStride = 255。那么：
-    * `cmp(125, 255) == 1`
-    * `cmp(129, 255) == -1`
-
-
-实验目录要求
-------------------------------------------
+- 实验目录要求
 
 .. code-block::
 
    ├── os(内核实现)
    │   └── ...
    ├── reports (不是 report)
-   │   ├── ch3.pdf
+   │   ├── ch3.md/pdf
    │   └── ...
    ├── ...
 
+
+- 通过所有测例：
+
+  CI 使用的测例与本地相同，测试中，user 文件夹及其它与构建相关的文件将被替换，请不要试图依靠硬编码通过测试。
+
+.. note::
+
+    你的实现只需且必须通过测例，建议读者感到困惑时先检查测例。
+
+.. ch3问答作业::
+
+问答作业
+--------------------------------------------
+
+1. 请学习 gdb 调试工具的使用(这对后续调试很重要)，并通过 gdb 简单跟踪从机器加电到跳转到 0x80200000 的简单过程。只需要描述重要的跳转即可，只需要描述在 qemu 上的情况。
+
+tips: 
+
+  - 事实上进入 rustsbi 之后就不需要使用 gdb 调试了。可以直接阅读代码。 `rustsbi起始代码 <https://github.com/rustsbi/rustsbi-qemu/blob/7d71bfb7b3ad8e36f06f92c2ffe2066bbb0f9254/rustsbi-qemu/src/main.rs#L56>`_ 。
+  - 可以使用示例代码 Makefile 中的 ``make debug`` 指令。
+  - 一些可能用到的 gdb 指令：
+      - ``x/10i 0x80000000`` : 显示 0x80000000 处的10条汇编指令。
+      - ``x/10i $pc`` : 显示即将执行的10条汇编指令。
+      - ``x/10xw 0x80000000`` : 显示 0x80000000 处的10条数据，格式为16进制32bit。
+      - ``info register``: 显示当前所有寄存器信息。
+      - ``info r t0``: 显示 t0 寄存器的值。
+      - ``break funcname``: 在目标函数第一条指令处设置断点。
+      - ``break *0x80200000``: 在 0x80200000 出设置断点。
+      - ``continue``: 执行直到碰到断点。
+      - ``si``: 单步执行一条汇编指令。
+
+
+2. 正确进入 U 态后，程序的特征还应有：使用 S 态特权指令，访问 S 态寄存器后会报错。请同学们可以自行测试这些内容（参考 `前三个测例 <https://github.com/DeathWish5/riscvos-c-tests/tree/main/user/src>`_ ，描述程序出错行为，同时注意注明你使用的 sbi 及其版本。
+   
+3. 请结合用例理解 `trampoline.S <https://github.com/DeathWish5/uCore-Tutorial-v2/blob/ch2/os/trampoline.S>`_ 中两个函数 `userret` 和 `uservec` 的作用，并回答如下几个问题:
+
+    1. L79: 刚进入 `userret` 时，`a0`、`a1` 分别代表了什么值。 
+
+    2. L87-L88: `sfence` 指令有何作用？为什么要执行该指令，当前章节中，删掉该指令会导致错误吗？
+
+        .. code-block:: assembly
+
+            csrw satp, a1
+            sfence.vma zero, zero
+
+    3. L96-L125: 为何注释中说要除去 `a0`？哪一个地址代表 `a0`？现在 `a0` 的值存在何处？
+
+        .. code-block:: assembly
+
+            # restore all but a0 from TRAPFRAME
+            ld ra, 40(a0)
+            ld sp, 48(a0)
+            ld t5, 272(a0)
+            ld t6, 280(a0)
+
+    4. `userret`：中发生状态切换在哪一条指令？为何执行之后会进入用户态？
+
+    5. L29： 执行之后，a0 和 sscratch 中各是什么值，为什么？
+
+        .. code-block:: assembly
+
+            csrrw a0, sscratch, a0     
+
+    6. L32-L61: 从 trapframe 第几项开始保存？为什么？是否从该项开始保存了所有的值，如果不是，为什么？
+        
+        .. code-block:: assembly
+
+            sd ra, 40(a0)
+            sd sp, 48(a0)
+            ...
+            sd t5, 272(a0)
+            sd t6, 280(a0)
+
+    7. 进入 S 态是哪一条指令发生的？
+
+    8.  L75-L76: `ld t0, 16(a0)` 执行之后，`t0`中的值是什么，解释该值的由来？
+        
+        .. code-block:: assembly
+
+            ld t0, 16(a0)
+            jr t0
+
+4. 请依次简要回答如下问题：
+
+    - 程序陷入内核的原因有中断和异常（系统调用），请问 RISC-V 64 支持哪些中断 / 异常？
+    - 如何判断进入内核是由于中断还是异常？请描述陷入内核时的几个重要寄存器及其值。
+    - 为了方便 os 处理，Ｍ 态软件会将 S 态异常/中断委托给 S 态软件，请指出有哪些寄存器记录了委托信息。
+    - RustSBI 委托了哪些异常/中断？（提示：看看 RustSBI 在启动时输出了什么？）
 
 .. ch3报告要求::
 
@@ -129,30 +187,9 @@ lab3中我们引入了任务调度的概念，可以在不同任务之间切换�
 - 注意目录要求，报告命名 ``lab1.pdf``，位于 ``reports`` 目录下。命名错误视作没有提交。后续实验同理。
 - 简单总结本次实验你新添加的代码。
 - 完成问答问题。
- 
-    + ch1: ch1问答作业_ 。
-    + ch2: ch2问答作业_ 。
-    + ch3: ch3问答作业_ 。
 
 - [可选，不占分]你对本次实验设计及难度/工作量的看法，以及有哪些需要改进的地方，欢迎畅所欲言。
 
 .. warning::
 
     请勿抄袭，报告会进行抽样查重！
-
-
-参考信息
--------------------------------
-如果有兴趣进一步了解 stride 调度相关内容，可以尝试看看：
-
-- `作者 Carl A. Waldspurger 写这个调度算法的原论文 <https://people.cs.umass.edu/~mcorner/courses/691J/papers/PS/waldspurger_stride/waldspurger95stride.pdf>`_
-- `作者 Carl A. Waldspurger 的博士生答辩slide <http://www.waldspurger.org/carl/papers/phd-mit-slides.pdf>`_ 
-- `南开大学实验指导中对Stride算法的部分介绍 <https://nankai.gitbook.io/ucore-os-on-risc-v64/lab6/tiao-du-suan-fa-kuang-jia#stride-suan-fa>`_
-- `NYU OS课关于Stride Scheduling的Slide <https://cs.nyu.edu/~rgrimm/teaching/sp08-os/stride.pdf>`_
-
-如果有兴趣进一步了解用户态线程实现的相关内容，可以尝试看看：
-
-- `user-multitask in rv64 <https://github.com/chyyuu/os_kernel_lab/tree/v4-user-std-multitask>`_
-- `绿色线程 in x86 <https://github.com/cfsamson/example-greenthreads>`_
-- `x86版绿色线程的设计实现 <https://cfsamson.gitbook.io/green-threads-explained-in-200-lines-of-rust/>`_
-- `用户级多线程的切换原理 <https://blog.csdn.net/qq_31601743/article/details/97514081?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.control&dist_request_id=&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-1.control>`_

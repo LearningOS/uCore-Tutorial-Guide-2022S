@@ -25,7 +25,6 @@ chapter6练习
 
     * syscall ID：401
     * C接口： ``int mailread(void* buf, int len)``
-    * Rust接口: ``fn mailread(buf: *mut u8, len: usize)``
     * 功能：读取一个报文，如果成功返回报文长度.
     * 参数：
         * buf: 缓冲区头。
@@ -41,7 +40,6 @@ chapter6练习
 
     * syscall ID：402
     * C接口： ``int mailwrite(int pid, void* buf, int len)``
-    * Rust接口: ``fn mailwrite(pid: usize, buf: *mut u8, len: usize)``
     * 功能：向对应进程邮箱插入一条报文.
     * 参数：
         * pid: 目标进程id。
