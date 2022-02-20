@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-uCore-Tutorial-Book 第二版
+uCore-Tutorial-Guide 2022 Spring
 ==================================================
 
 .. toctree::
@@ -30,12 +30,12 @@ uCore-Tutorial-Book 第二版
    rest-example
    log
 
-欢迎来到 uCore-Tutorial-Book 第二版！
+欢迎来到 uCore-Tutorial-Guide 2022 Spring 2015！
 
 指导书简介
 ----------------------------
 
-该指导书为 `THU` `OS` 课程实验 `C` 版实验指导书，旨在帮助同学们快速熟悉框架并完成书面和编程任务, `配套代码 <https://github.com/deathWish5/uCore-Tutorial-v2>`_ 。
+该指导书为 `THU` `OS` 课程实验 `C` 版实验指导书，旨在帮助同学们快速熟悉框架并完成书面和编程任务, `配套代码 <https://github.com/LearningOS/uCore-Tutorial-v2>`_ 。
 
 此外，还推荐有余力同学们参考 `rCore-Tutorial 指导书 <https://rcore-os.github.io/rCore-Tutorial-Book-v3/index.html>`_。该书为一本从零开始写一个 OS 的教材，虽然是 rust 语言编写的，但对于 OS 的宏观特征和部分细节有更详细的描述。本指导书大量引用了该书的部分章节。
 
