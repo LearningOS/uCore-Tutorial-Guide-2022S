@@ -1,4 +1,4 @@
-# uCore-Tutorial-Book-v2
-Documentation of uCore-Tutorial-v2.
+# uCore-Tutorial-Guide-2022Spring
+Documentation of uCore-Tutorial-Guide-2022Spring
 
-Deployed version can be found [here](https://LearningOS.github.io/uCore-Tutorial-Book/).
+Deployed version can be found [here](https://LearningOS.github.io/uCore-Tutorial-Guide/).
