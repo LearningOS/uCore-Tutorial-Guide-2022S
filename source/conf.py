@@ -38,7 +38,7 @@ extensions = [
 
 comments_config = {
    "utterances": {
-       "repo": "LearningOS/uCore-Tutorial-Book",
+       "repo": "LearningOS/uCore-Tutorial-Guide",
        "issue-term": "pathname",
        "label": "comments",
        "theme": "github-light",
