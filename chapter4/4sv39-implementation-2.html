@@ -1,0 +1,621 @@
+<!doctype html>
+<html class="no-js" lang="zh_CN">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="chapter4练习" href="7exercise.html" /><link rel="prev" title="SV39多级页表机制：内容介绍" href="3sv39-implementation-1.html" />
+
+    <meta name="generator" content="sphinx-4.1.2, furo 2021.08.31"/>
+        <title>SV39多级页表机制：OS实现 - uCore-Tutorial-Book-v2 0.1 文档</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=c7c65a82b42f6b978e58466c1e9ef2509836d916" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=16fb25fabf47304eee183a5e9af80b1ba98259b1" />
+    <link rel="stylesheet" type="text/css" href="../_static/my_style.css" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  body[data-theme="dark"] {
+    --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+  }
+  @media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+  }
+</style></head>
+  <body>
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke="none" d="M0 0h24v24H0z" />
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="10" y1="12" x2="20" y2="12" />
+      <line x1="6" y1="18" x2="20" y2="18" />
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">uCore-Tutorial-Book-v2 0.1 文档</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  
+  <span class="sidebar-brand-text">uCore-Tutorial-Book-v2 0.1 文档</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder=搜索 name="q" aria-label="搜索">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Part1 - Just do it!</span></p>
+<ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter0/index.html">第零章：实验环境搭建</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter0/1setup-devel-env.html">实验环境配置</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter1/index.html">第一章：应用程序与基本执行环境</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter1/0intro.html">引言</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter1/1app-ee-platform.html">代码框架简述</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter1/2remove-std.html">makefile 和 qemu</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter1/3exercise.html">chapter1练习</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter2/index.html">第二章：批处理系统</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter2/0intro.html">引言</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/1rv-privilege.html">特权级机制</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/2application.html">实现应用程序以及user文件夹</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/3batch-system.html">实现批处理操作系统的细节</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/4exercise.html">chapter2练习</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter3/index.html">第三章：多道程序与分时多任务</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/1multi-loader.html">多道程序放置与加载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/2proc-basic.html">进程基础结构</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/3multiprogramming.html">多道程序与协作式调度</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/4time-sharing-system.html">分时多任务系统与抢占式调度</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/5exercise.html">chapter3练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">第四章：地址空间</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="1rust-dynamic-allocation.html">C 中的动态内存分配</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2address-space.html">地址空间</a></li>
+<li class="toctree-l2"><a class="reference internal" href="3sv39-implementation-1.html">SV39多级页表机制：内容介绍</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">SV39多级页表机制：OS实现</a></li>
+<li class="toctree-l2"><a class="reference internal" href="7exercise.html">chapter4练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter5/index.html">第五章：进程及进程管理</a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/1process.html">进程的重要系统调用</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/2core-data-structures.html">shell与测例的加载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/3exercise.html">chapter5练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter6/index.html">第六章：文件系统与I/O重定向</a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/1fs-interface.html">文件系统接口</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/2fs-implementation.html">nfs文件系统</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/5exercise.html">chapter6练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter7/index.html">第七章：进程间通信</a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/1file-descriptor.html">文件系统初步</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/2pipe.html">进程通讯与 fork</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/3exercise.html">chapter6练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter8/index.html">第八章：并发</a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter8/0exercise.html">chapter8练习</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">开发注记</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../setup-sphinx.html">修改和构建本项目</a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../rest-example.html">reStructuredText 基本语法</a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <article role="main">
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <div class="section" id="sv39-os">
+<h1>SV39多级页表机制：OS实现<a class="headerlink" href="#sv39-os" title="永久链接至标题">¶</a></h1>
+<div class="section" id="id1">
+<h2>本节导读<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
+<p>本节我们将讲述OS是如何实现页表的支持的。在深入本章的内容之前，大家一定要牢记，完成虚拟地址查询页表或TLB转换成物理地址的过程是由硬件，也就是CPU来完成的（MMU）。我们在框架之中实现的地址转换函数是为了我们在某些函数中自己计算虚拟地址到物理地址转换使用的。OS负责对页表进行建立、更改等处理，真正在程序运行时，CPU对指令、数据虚拟地址会十分机械地按照下面讲述的方法使用os创建好的页表进行地址转换。</p>
+</div>
+<div class="section" id="id2">
+<h2>地址相关的数据结构抽象<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
+<p>正如本章第一小节所说，在分页内存管理中，地址转换的核心任务在于如何维护虚拟页号到物理页号的映射——也就是页表。我们对页表的操作集中在vm.c文件之中。</p>
+<p>首先是为了实现页表，我们新增的类型的定义：</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// os/types.h</span>
+
+<span class="k">typedef</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">pte_t</span><span class="p">;</span><span class="w"></span>
+<span class="k">typedef</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">pde_t</span><span class="p">;</span><span class="w"></span>
+<span class="k">typedef</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="o">*</span><span class="n">pagetable_t</span><span class="p">;</span><span class="c1">// 512 PTEs</span>
+</pre></div>
+</div>
+<p>第一小节中我们提到，在页表中以虚拟页号作为索引不仅能够查到物理页号，还能查到一组保护位，它控制了应用对地址空间每个
+虚拟页面的访问权限。但实际上还有更多的标志位，物理页号和全部的标志位以某种固定的格式保存在一个结构体中，它被称为
+<strong>页表项</strong> (PTE, Page Table Entry) ，是利用虚拟页号在页表中查到的结果。</p>
+<img alt="../_images/sv39-pte.png" src="../_images/sv39-pte.png"/>
+<p>上图为 SV39 分页模式下的页表项，其中 <span class="math notranslate nohighlight">\([53:10]\)</span> 这 <span class="math notranslate nohighlight">\(44\)</span> 位是物理页号，最低的 <span class="math notranslate nohighlight">\(8\)</span> 位
+<span class="math notranslate nohighlight">\([7:0]\)</span> 则是标志位，它们的含义如下（请注意，为方便说明，下文我们用 <em>页表项的对应虚拟页面</em> 来表示索引到
+一个页表项的虚拟页号对应的虚拟页面）：</p>
+<ul class="simple">
+<li><p>仅当 V(Valid) 位为 1 时，页表项才是合法的；</p></li>
+<li><p>R/W/X 分别控制索引到这个页表项的对应虚拟页面是否允许读/写/取指；</p></li>
+<li><p>U 控制索引到这个页表项的对应虚拟页面是否在 CPU 处于 U 特权级的情况下是否被允许访问；</p></li>
+<li><p>G 我们暂且不理会；</p></li>
+<li><p>A(Accessed) 记录自从页表项上的这一位被清零之后，页表项的对应虚拟页面是否被访问过；</p></li>
+<li><p>D(Dirty) 则记录自从页表项上的这一位被清零之后，页表项的对应虚拟页表是否被修改过。</p></li>
+</ul>
+<p>由于pte只有54位，每一个页表项我们用一个8字节的无符号整型来记录就已经足够。</p>
+<div class="section" id="va-pa">
+<h3>页表实现va–&gt;pa的转换过程<a class="headerlink" href="#va-pa" title="永久链接至标题">¶</a></h3>
+<p>下面我们通过来解读我们OS的walk函数了解SV39的页表读取机制。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="o">:</span><span class="nl">linenos</span><span class="p">:</span><span class="w"></span>
+
+<span class="c1">// os/vm.c</span>
+
+<span class="n">pte_t</span><span class="w"> </span><span class="o">*</span><span class="w"></span>
+<span class="n">walk</span><span class="p">(</span><span class="n">pagetable_t</span><span class="w"> </span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">alloc</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">va</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">MAXVA</span><span class="p">)</span><span class="w"></span>
+<span class="w">        </span><span class="n">panic</span><span class="p">(</span><span class="s">"walk"</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"> </span><span class="n">level</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">level</span><span class="o">--</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">pte_t</span><span class="w"> </span><span class="o">*</span><span class="n">pte</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pagetable</span><span class="p">[</span><span class="n">PX</span><span class="p">(</span><span class="n">level</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="p">)];</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">pte</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">PTE_V</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="n">pagetable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">pagetable_t</span><span class="p">)</span><span class="w"> </span><span class="n">PTE2PA</span><span class="p">(</span><span class="o">*</span><span class="n">pte</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">alloc</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="p">(</span><span class="n">pagetable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">pde_t</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="n">kalloc</span><span class="p">())</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"></span>
+<span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">            </span><span class="n">memset</span><span class="p">(</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="o">*</span><span class="n">pte</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PA2PTE</span><span class="p">(</span><span class="n">pagetable</span><span class="p">)</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_V</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pagetable</span><span class="p">[</span><span class="n">PX</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="p">)];</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>walk函数模拟了CPU进行MMU的过程。它的参数分别是页表，待转换的虚拟地址va，以及如果没有对应的物理地址时是否分配物理地址。
+SV39的转换是由3级页表结构完成。在riscv.h之中定义的宏函数PX完成了每一级从va转换到pte的过程:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="o">:</span><span class="nl">linenos</span><span class="p">:</span><span class="w"></span>
+
+<span class="cp">#define PXMASK 0x1FF</span><span class="c1">// 9 bits</span>
+<span class="cp">#define PGSHIFT 12</span><span class="c1">// bits of offset within a page</span>
+<span class="cp">#define PXSHIFT(level) (PGSHIFT + (9 * (level)))</span>
+<span class="cp">#define PX(level, va) ((((uint64)(va)) &gt;&gt; PXSHIFT(level)) &amp; PXMASK)</span>
+</pre></div>
+</div>
+<p>可以看到，每一次我们只需要截取队va高27位中对应级别的9位即可。一开始截取最高9位，接着是中间的9位和低9位。这9位我们如何使用呢？SV39中要求我们把页表的44位和虚拟地址对应的9位*8直接拼接在一起做为pte的地址。页表的高44位（也就是页号）拼接上12位的0实际上就是pagetable指向的物理地址。我们可以计算得到一个4096大小的页表之中有4096/8=512个页表项。因此我们得到的这9位实际上就是pte在这一页之中的偏移，也就是其下标了。</p>
+<p>得到了页表项之后，我们使用PTE2PA函数将该页表项的高44位（也就是下一个页表的页号）取出和12个0拼接（通过左移和右移可以轻松实现），就得到了下一级页表的起始物理地址了。接着重复这样的操作，直到最后一个pte解析出来，就可以返回最后一个pte了（循环并没有处理最后一级）。最后一个pte中记录了物理地址的物理页号PPN，将它直接和虚拟地址的12位offset拼接就得到了对应的物理地址pa。</p>
+<p>整个过程中要注意随时通过PTE的标志位判断每一级的pte是否是有效的（V位）。如果无效则需要kalloc分配一个新的页表，并初始化该pte在其中的位置。如果alloc参数=0或者已经没有空闲的内存了（这个情况在lab8之前不会遇到），那么遇到中途V=0的pte整个walk过程就会直接退出。当然这是OS的写法，如果CPU在MMU的时候遇到这种情况就会直接报异常了。</p>
+<p>walk函数是我们比较底层的一个函数，但也是所有遍历页表进行地址转换函数的基础。我们还实现了两个转换函数:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="o">:</span><span class="nl">linenos</span><span class="p">:</span><span class="w"></span>
+
+<span class="c1">// Look up a virtual address, return the physical page,</span>
+<span class="c1">// or 0 if not mapped.</span>
+<span class="c1">// Can only be used to look up user pages.</span>
+<span class="c1">// Use `walk`</span>
+<span class="n">uint64</span><span class="w"> </span><span class="n">walkaddr</span><span class="p">(</span><span class="n">pagetable_t</span><span class="w"> </span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">va</span><span class="p">);</span><span class="w"></span>
+
+<span class="c1">// Look up a virtual address, return the physical address.</span>
+<span class="c1">// Use `walkaddr`</span>
+<span class="n">uint64</span><span class="w"> </span><span class="nf">useraddr</span><span class="p">(</span><span class="n">pagetable_t</span><span class="w"> </span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">va</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
+<p>大家可以自行阅读。注意walkaddr函数没有考虑偏移量，因此在使用的时候请首先考虑useraddr函数。</p>
+</div>
+</div>
+<div class="section" id="id3">
+<h2>页表的建立过程<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h2>
+<p>无论是CPU进行MMU，还是我们自己walk实现va到pa的转换需要的页表都是需要OS来生成的。相关函数也是本章练习涉及到的主要函数。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1">// Create PTEs for virtual addresses starting at va that refer to</span>
+<span class="linenos"> 2</span><span class="c1">// physical addresses starting at pa. va and size might not</span>
+<span class="linenos"> 3</span><span class="c1">// be page-aligned. Returns 0 on success, -1 if walk() couldn't</span>
+<span class="linenos"> 4</span><span class="c1">// allocate a needed page-table page.</span>
+<span class="linenos"> 5</span><span class="kt">int</span><span class="w"> </span><span class="nf">mappages</span><span class="p">(</span><span class="n">pagetable_t</span><span class="w"> </span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">size</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">pa</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">perm</span><span class="p">);</span><span class="w"></span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="c1">// Remove npages of mappings starting from va. va must be</span>
+<span class="linenos"> 8</span><span class="c1">// page-aligned. The mappings must exist.</span>
+<span class="linenos"> 9</span><span class="c1">// Optionally free the physical memory.</span>
+<span class="linenos">10</span><span class="kt">void</span><span class="w"> </span><span class="nf">uvmunmap</span><span class="p">(</span><span class="n">pagetable_t</span><span class="w"> </span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">npages</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">do_free</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
+<p>以上是建立新映射和取消映射的函数，mappages 在 pagetable 中建立 [va, va + size) 到 [pa, pa + size) 的映射，页表属性为perm，uvmunmap 则取消一段映射，do_free 控制是否 kfree 对应的物理内存（比如这是一个共享内存，那么第一次 unmap 就不 free，最后一个 unmap 肯定要 free）。</p>
+<p>mappages的perm是用于控制页表项的flags的。请注意它具体指向哪几位，这将极大地影响页表的可用性。因为CPU进行MMU的时候一旦权限出错，比如CPU在U态访问了flag之中U=0的页表项是会直接报异常的。</p>
+</div>
+<div class="section" id="id4">
+<h2>启用页表后的跨页表操作<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
+<p>一旦启用了页表之后，U态的测例程序就开始全部使用虚拟地址了。这就意味着它传给OS的指针参数也是虚拟地址，我们无法直接去读虚拟地址，而是要将它使用对应进程的页表转换成物理地址才能读取。</p>
+<p>为了方便大家，我们预先准备了几个跨页表进行字符串数据交换的函数。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="o">:</span><span class="nl">linenos</span><span class="p">:</span><span class="w"></span>
+
+<span class="c1">// Copy from kernel to user.</span>
+<span class="c1">// Copy len bytes from src to virtual address dstva in a given page table.</span>
+<span class="c1">// Return 0 on success, -1 on error.</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">copyout</span><span class="p">(</span><span class="n">pagetable_t</span><span class="w"> </span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">dstva</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">src</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">len</span><span class="p">);</span><span class="w"></span>
+
+<span class="c1">// Copy from user to kernel.</span>
+<span class="c1">// Copy len bytes to dst from virtual address srcva in a given page table.</span>
+<span class="c1">// Return 0 on success, -1 on error.</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">copyin</span><span class="p">(</span><span class="n">pagetable_t</span><span class="w"> </span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">dst</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">srcva</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">len</span><span class="p">);</span><span class="w"></span>
+
+<span class="c1">// Copy a null-terminated string from user to kernel.</span>
+<span class="c1">// Copy bytes to dst from virtual address srcva in a given page table,</span>
+<span class="c1">// until a '\0', or max.</span>
+<span class="c1">// Return 0 on success, -1 on error.</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">copyinstr</span><span class="p">(</span><span class="n">pagetable_t</span><span class="w"> </span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">dst</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">srcva</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">max</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
+<p>用于与指定页表进行数据交换，copyout 可以向页表中写东西，后续用于 sys_read，也就是给用户传数据，copyin 用户接受用户的 buffer，也就是从用户哪里读数据。
+注意，用户在启用了虚拟内存之后，用户 syscall 给出的指针是不能直接用的，因为与内核的映射不一样，会读取错误的物理地址，使用指针必须通过 useraddr 转化，当然，更加推荐的是 copyin/out 接口，否则很可能损坏内存数据，同时，copyin/out 接口处理了虚存跨页的情况，useraddr 则需要手动判断并处理。跨页会在测例文件bin比较大的时候出现。如果你的程序出现了完全De不出来的BUG，可能就是跨页+使用了错误的接口导致的。</p>
+</div>
+<div class="section" id="id5">
+<h2>内核页表<a class="headerlink" href="#id5" title="永久链接至标题">¶</a></h2>
+<p>开启页表之后，内核也需要进行映射处理。但是我们这里可以直接进行一一映射，也就是va经过MMU转换得到的pa就是va本身（但是转换过程还是会执行！）。内核需要能访问到所有的物理内存以处理频繁的操作不同进程内存的需求。内核页表建立过程在main函数之中调用。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="o">:</span><span class="nl">linenos</span><span class="p">:</span><span class="w"></span>
+
+<span class="cp">#define PTE_V (1L &lt;&lt; 0)     </span><span class="c1">// valid</span>
+<span class="cp">#define PTE_R (1L &lt;&lt; 1)</span>
+<span class="cp">#define PTE_W (1L &lt;&lt; 2)</span>
+<span class="cp">#define PTE_X (1L &lt;&lt; 3)</span>
+<span class="cp">#define PTE_U (1L &lt;&lt; 4)     </span><span class="c1">// 1 -&gt; user can access</span>
+
+<span class="cp">#define KERNBASE (0x80200000)</span>
+<span class="k">extern</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">e_text</span><span class="p">[];</span><span class="w">     </span><span class="c1">// kernel.ld sets this to end of kernel code.</span>
+<span class="k">extern</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">trampoline</span><span class="p">[];</span><span class="w"></span>
+
+<span class="n">pagetable_t</span><span class="w"> </span><span class="nf">kvmmake</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">pagetable_t</span><span class="w"> </span><span class="n">kpgtbl</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">kpgtbl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">pagetable_t</span><span class="p">)</span><span class="w"> </span><span class="n">kalloc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="n">kpgtbl</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">mappages</span><span class="p">(</span><span class="n">kpgtbl</span><span class="p">,</span><span class="w"> </span><span class="n">KERNBASE</span><span class="p">,</span><span class="w"> </span><span class="n">KERNBASE</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="w"> </span><span class="n">e_text</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">KERNBASE</span><span class="p">,</span><span class="w"> </span><span class="n">PTE_R</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_X</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">mappages</span><span class="p">(</span><span class="n">kpgtbl</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="w"> </span><span class="n">e_text</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="w"> </span><span class="n">e_text</span><span class="p">,</span><span class="w"> </span><span class="n">PHYSTOP</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="w"> </span><span class="n">e_text</span><span class="p">,</span><span class="w"> </span><span class="n">PTE_R</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_W</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">mappages</span><span class="p">(</span><span class="n">kpgtbl</span><span class="p">,</span><span class="w"> </span><span class="n">TRAMPOLINE</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="n">trampoline</span><span class="p">,</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">,</span><span class="w"> </span><span class="n">PTE_R</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_X</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">kpgtbl</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id6">
+<h2>用户页表的加载<a class="headerlink" href="#id6" title="永久链接至标题">¶</a></h2>
+<p>用户的加载逻辑在 loader.c 中，其中唯一逻辑变化较大的就是 bin_loader 函数，请结合注释理解这个函数：</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="o">:</span><span class="nl">linenos</span><span class="p">:</span><span class="w"></span>
+
+<span class="n">pagetable_t</span><span class="w"> </span><span class="n">bin_loader</span><span class="p">(</span><span class="n">uint64</span><span class="w"> </span><span class="n">start</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">end</span><span class="p">,</span><span class="w"> </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// pg 代表根页表地址</span>
+<span class="w">    </span><span class="n">pagetable_t</span><span class="w"> </span><span class="n">pg</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 根页表大小恰好为 1 个页</span>
+<span class="w">    </span><span class="n">pg</span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">pagetable_t</span><span class="p">)</span><span class="n">kalloc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pg</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">errorf</span><span class="p">(</span><span class="s">"uvmcreate: kalloc error"</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 注意 kalloc() 分配的页为脏页，这里需要先清空。</span>
+<span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 映射 trapoline（也就是 uservec 和 userret 的代码），注意这里的权限!</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mappages</span><span class="p">(</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">TRAMPOLINE</span><span class="p">,</span><span class="w"> </span><span class="n">PAGE_SIZE</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="n">trampoline</span><span class="p">,</span><span class="w"></span>
+<span class="w">            </span><span class="n">PTE_R</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_X</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">kfree</span><span class="p">(</span><span class="n">pagetable</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">errorf</span><span class="p">(</span><span class="s">"uvmcreate: mappages error"</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 映射 trapframe（中断帧），注意这里的权限!</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mappages</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="w"> </span><span class="n">TRAPFRAME</span><span class="p">,</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">trapframe</span><span class="p">,</span><span class="w"></span>
+<span class="w">            </span><span class="n">PTE_R</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_W</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">panic</span><span class="p">(</span><span class="s">"mappages fail"</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// 接下来映射用户实际地址空间，也就是把 physics address [start, end)</span>
+<span class="w">    </span><span class="c1">// 映射到虚拟地址 [BASE_ADDRESS, BASE_ADDRESS + length)</span>
+
+<span class="w">    </span><span class="c1">// riscv 指令有对齐要求，同时,如果不对齐直接映射的话会把部分内核地址映射到用户态，很不安全</span>
+<span class="w">    </span><span class="c1">// ch5我们就不需要这个限制了。</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">PGALIGNED</span><span class="p">(</span><span class="n">start</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// Fix in ch5</span>
+<span class="w">        </span><span class="n">panic</span><span class="p">(</span><span class="s">"user program not aligned, start = %p"</span><span class="p">,</span><span class="w"> </span><span class="n">start</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="n">end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PGROUNDUP</span><span class="p">(</span><span class="n">end</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 实际的 map 指令。</span>
+<span class="w">    </span><span class="n">uint64</span><span class="w"> </span><span class="n">length</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mappages</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="w"> </span><span class="n">BASE_ADDRESS</span><span class="p">,</span><span class="w"> </span><span class="n">length</span><span class="p">,</span><span class="w"> </span><span class="n">start</span><span class="p">,</span><span class="w"></span>
+<span class="w">            </span><span class="n">PTE_U</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_R</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_W</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_X</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">panic</span><span class="p">(</span><span class="s">"mappages fail"</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">pagetable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pg</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 接下来 map user stack， 注意这里的虚存选择，想想为何要这样？</span>
+<span class="w">    </span><span class="n">uint64</span><span class="w"> </span><span class="n">ustack_bottom_vaddr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BASE_ADDRESS</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">length</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">PAGE_SIZE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">mappages</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="w"> </span><span class="n">ustack_bottom_vaddr</span><span class="p">,</span><span class="w"> </span><span class="n">USTACK_SIZE</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="n">kalloc</span><span class="p">(),</span><span class="w"></span>
+<span class="w">        </span><span class="n">PTE_U</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_R</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_W</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_X</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">ustack</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ustack_bottom_vaddr</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 设置 trapframe</span>
+<span class="w">    </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">trapframe</span><span class="o">-&gt;</span><span class="n">epc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BASE_ADDRESS</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">trapframe</span><span class="o">-&gt;</span><span class="n">sp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">ustack</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">USTACK_SIZE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// exit 的时候会 unmap 页表中 [BASE_ADDRESS, max_page * PAGE_SIZE) 的页</span>
+<span class="w">    </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">max_page</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PGROUNDUP</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">ustack</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">USTACK_SIZE</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">PAGE_SIZE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">pg</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>这里大家也要注意，每一个测例进程都有一套自己的页表。因此在进程切换或者异常中断处理返回U态的时候需要设置satp的值为其对应的值才能使用正确的页表。具体的实现其实之前几章已经先做好了。</p>
+<p>我们需要重点关注一下trapframe 和 trampoline 代码的位置。在前面两节我们看到了memory_layout文件。这两块内存用户特权级切换，必须用户态和内核态都能访问。所以它们在内核和用户页表中都有 map，注意所有 kalloc() 分配的内存内核都能访问，这是因为我们已经预先设置好页表了。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="cp">#define USER_TOP (MAXVA)</span>
+<span class="linenos">2</span><span class="cp">#define TRAMPOLINE (USER_TOP - PGSIZE)</span>
+<span class="linenos">3</span><span class="cp">#define TRAPFRAME (TRAMPOLINE - PGSIZE)</span>
+</pre></div>
+</div>
+<p>这与为何要这么设定，留给读者思考。</p>
+</div>
+</div>
+
+      </article>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="7exercise.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">chapter4练习</div>
+              </div>
+              <svg><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="3sv39-implementation-1.html">
+              <svg><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">SV39多级页表机制：内容介绍</div>
+                
+              </div>
+            </a>
+        </div>
+
+        <div class="related-information">
+              Copyright &#169; 2020, Yifan Wu
+            |
+            Built with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+              and
+              <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+              <a href="https://github.com/pradyunsg/furo">Furo theme</a>.
+            |
+            <a class="muted-link" href="../_sources/chapter4/4sv39-implementation-2.rst.txt"
+               rel="nofollow">
+              显示源代码
+            </a>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            目录
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">SV39多级页表机制：OS实现</a><ul>
+<li><a class="reference internal" href="#id1">本节导读</a></li>
+<li><a class="reference internal" href="#id2">地址相关的数据结构抽象</a><ul>
+<li><a class="reference internal" href="#va-pa">页表实现va–&gt;pa的转换过程</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id3">页表的建立过程</a></li>
+<li><a class="reference internal" href="#id4">启用页表后的跨页表操作</a></li>
+<li><a class="reference internal" href="#id5">内核页表</a></li>
+<li><a class="reference internal" href="#id6">用户页表的加载</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/scripts/main.js"></script>
+    <script kind="utterances">
+
+    var commentsRunWhenDOMLoaded = cb => {
+    if (document.readyState != 'loading') {
+        cb()
+    } else if (document.addEventListener) {
+        document.addEventListener('DOMContentLoaded', cb)
+    } else {
+        document.attachEvent('onreadystatechange', function() {
+        if (document.readyState == 'complete') cb()
+        })
+    }
+}
+
+var addUtterances = () => {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://utteranc.es/client.js";
+    script.async = "async";
+
+    script.setAttribute("repo", "LearningOS/uCore-Tutorial-Guide");
+    script.setAttribute("issue-term", "pathname");
+    script.setAttribute("theme", "github-light");
+    script.setAttribute("label", "comments");
+    script.setAttribute("crossorigin", "anonymous");
+
+    sections = document.querySelectorAll("div.section");
+    if (sections !== null) {
+        section = sections[sections.length-1];
+        section.appendChild(script);
+    }
+}
+commentsRunWhenDOMLoaded(addUtterances);
+</script>
+    <script src="../_static/translations.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>

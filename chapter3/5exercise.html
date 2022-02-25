@@ -1,0 +1,613 @@
+<!doctype html>
+<html class="no-js" lang="zh_CN">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="第四章：地址空间" href="../chapter4/index.html" /><link rel="prev" title="分时多任务系统与抢占式调度" href="4time-sharing-system.html" />
+
+    <meta name="generator" content="sphinx-4.1.2, furo 2021.08.31"/>
+        <title>chapter3练习 - uCore-Tutorial-Book-v2 0.1 文档</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=c7c65a82b42f6b978e58466c1e9ef2509836d916" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=16fb25fabf47304eee183a5e9af80b1ba98259b1" />
+    <link rel="stylesheet" type="text/css" href="../_static/my_style.css" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  body[data-theme="dark"] {
+    --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+  }
+  @media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+  }
+</style></head>
+  <body>
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke="none" d="M0 0h24v24H0z" />
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="10" y1="12" x2="20" y2="12" />
+      <line x1="6" y1="18" x2="20" y2="18" />
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">uCore-Tutorial-Book-v2 0.1 文档</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  
+  <span class="sidebar-brand-text">uCore-Tutorial-Book-v2 0.1 文档</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder=搜索 name="q" aria-label="搜索">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Part1 - Just do it!</span></p>
+<ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter0/index.html">第零章：实验环境搭建</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter0/1setup-devel-env.html">实验环境配置</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter1/index.html">第一章：应用程序与基本执行环境</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter1/0intro.html">引言</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter1/1app-ee-platform.html">代码框架简述</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter1/2remove-std.html">makefile 和 qemu</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter1/3exercise.html">chapter1练习</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter2/index.html">第二章：批处理系统</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter2/0intro.html">引言</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/1rv-privilege.html">特权级机制</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/2application.html">实现应用程序以及user文件夹</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/3batch-system.html">实现批处理操作系统的细节</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/4exercise.html">chapter2练习</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">第三章：多道程序与分时多任务</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="1multi-loader.html">多道程序放置与加载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2proc-basic.html">进程基础结构</a></li>
+<li class="toctree-l2"><a class="reference internal" href="3multiprogramming.html">多道程序与协作式调度</a></li>
+<li class="toctree-l2"><a class="reference internal" href="4time-sharing-system.html">分时多任务系统与抢占式调度</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">chapter3练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter4/index.html">第四章：地址空间</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/1rust-dynamic-allocation.html">C 中的动态内存分配</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/2address-space.html">地址空间</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/3sv39-implementation-1.html">SV39多级页表机制：内容介绍</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/4sv39-implementation-2.html">SV39多级页表机制：OS实现</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/7exercise.html">chapter4练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter5/index.html">第五章：进程及进程管理</a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/1process.html">进程的重要系统调用</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/2core-data-structures.html">shell与测例的加载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/3exercise.html">chapter5练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter6/index.html">第六章：文件系统与I/O重定向</a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/1fs-interface.html">文件系统接口</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/2fs-implementation.html">nfs文件系统</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/5exercise.html">chapter6练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter7/index.html">第七章：进程间通信</a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/1file-descriptor.html">文件系统初步</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/2pipe.html">进程通讯与 fork</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/3exercise.html">chapter6练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter8/index.html">第八章：并发</a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter8/0exercise.html">chapter8练习</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">开发注记</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../setup-sphinx.html">修改和构建本项目</a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../rest-example.html">reStructuredText 基本语法</a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <article role="main">
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <div class="section" id="chapter3">
+<h1>chapter3练习<a class="headerlink" href="#chapter3" title="永久链接至标题">¶</a></h1>
+<ul class="simple">
+<li><p>本节难度：编程试水</p></li>
+</ul>
+<div class="section" id="id1">
+<h2>本章任务<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
+<ul class="simple">
+<li><p>注意本节任务最终对应一次 lab 提交。</p></li>
+<li><p>老规矩，先 <cite>make test BASE=1</cite> 看下啥情况。</p></li>
+<li><p>理解框架的多任务加载机制，了解此时用户和内核的大概内存布局。在此基础上，实现本章编程作业(1)更安全的 sys_write。</p></li>
+<li><p>理解框架的调度机制，尤其要搞明白时钟中断的处理机制以及 yield 之后下一个进程的选择。在次基础上，完成本节的编程作业(2)stride 调度算法。</p></li>
+<li><p>进一步思考 stride 调度算法，完成本章问答作业。</p></li>
+<li><p>最终，完成实验报告并 push 你的 ch3 分支到远程仓库。<a href="#id11"><span class="problematic" id="id12">ch3报告要求_</span></a> 。push 代码后会自动执行 CI，代码给分以 CI 给分为准。</p></li>
+</ul>
+<div class="section" id="id2">
+<h3>读取目录信息<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h3>
+<div class="admonition note">
+<p class="admonition-title">注解</p>
+<p>本实验为用户态实验，请在 Linux 环境下完成。</p>
+</div>
+<p>在 Linux 中，我们可以用 <cite>ls</cite> 命令列出某个目录下的文件名，也可以用 <cite>pwd</cite> 命令显示当前工作目录。现在我们来自己实现这两个功能，简单起见，可以不需要考虑额外参数，仅显示程序所在的目录信息和文件名即可。</p>
+<div class="admonition hint">
+<p class="admonition-title">提示</p>
+<p>或许可以派上用场的系统调用和 C 库函数： <cite>getcwd</cite>, <cite>getwd</cite>, <cite>open</cite>, <cite>opendir</cite>, <cite>readdir</cite>, <cite>getdents</cite></p>
+</div>
+</div>
+<div class="section" id="id3">
+<h3>获取任务信息<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h3>
+<p>ch3 中，我们的系统已经能够支持多个任务分时轮流运行，我们希望引入一个新的系统调用 <code class="docutils literal notranslate"><span class="pre">sys_task_info</span></code> 以获取任务的信息，定义如下：</p>
+<div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">sys_task_info</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">TaskInfo</span><span class="w"> </span><span class="o">*</span><span class="n">ts</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>syscall ID: 410</p></li>
+<li><p>根据任务 ID 查询任务信息，任务信息包括任务 ID、任务控制块相关信息（任务状态）、任务使用的系统调用及调用次数、任务总运行时长。</p></li>
+</ul>
+<div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">TaskInfo</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">TaskStatus</span><span class="w"> </span><span class="n">status</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">SyscallInfo</span><span class="p">[</span><span class="n">MAX_SYSCALL_NUM</span><span class="p">]</span><span class="w"> </span><span class="n">call</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">time</span><span class="w"></span>
+<span class="p">};</span><span class="w"></span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>系统调用信息采用数组形式对每个系统调用的次数进行统计，相关结构定义如下：</p></li>
+</ul>
+<div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">SyscallInfo</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">times</span><span class="w"></span>
+<span class="p">};</span><span class="w"></span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><dl class="simple">
+<dt>参数：</dt><dd><ul>
+<li><p>id: 待查询任务id</p></li>
+<li><p>ts: 待查询任务信息</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>返回值：执行成功返回0，错误返回-1</p></li>
+<li><dl class="simple">
+<dt>说明：</dt><dd><ul>
+<li><p>相关结构已在框架中给出，只需添加逻辑实现功能需求即可。</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>提示：</dt><dd><ul>
+<li><p>大胆修改已有框架！除了配置文件，你几乎可以随意修改已有框架的内容。</p></li>
+<li><p>程序运行时间可以通过调用 <code class="docutils literal notranslate"><span class="pre">get_time()</span></code> 获取。</p></li>
+<li><p>系统调用次数可以考虑在进入内核态系统调用异常处理函数之后，进入具体系统调用函数之前维护。</p></li>
+<li><p>阅读 proc 的实现，思考如何维护内核控制块信息（可以在控制块可变部分加入其他需要的信息）</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="id4">
+<h3>打印调用堆栈（选做）<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h3>
+<p>我们在调试程序时，除了正在执行的函数外，往往还需要知道当前的调用堆栈。这样的功能通常由调试器、运行环境、 IDE 或操作系统等提供，但现在我们只能靠自己了。最基本的实现只需打印出调用链上的函数地址，更丰富的功能包括打印出函数名、函数定义、传递的参数等等。</p>
+<p>本实验我们不提供测例，仅提供参考实现，各位同学可以通过对照 GDB 、参考实现或自行构造调用链等方式检验自己的实现是否正确。</p>
+<div class="admonition hint">
+<p class="admonition-title">提示</p>
+<p>可以参考《编译原理》课程中关于函数调用栈帧的内容。</p>
+</div>
+</div>
+<div class="section" id="id5">
+<h3>实验要求<a class="headerlink" href="#id5" title="永久链接至标题">¶</a></h3>
+<ul class="simple">
+<li><p>完成分支: ch3。</p></li>
+<li><p>实验目录要求</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>├── os(内核实现)
+│   └── ...
+├── reports (不是 report)
+│   ├── ch3.md/pdf
+│   └── ...
+├── ...
+</pre></div>
+</div>
+<ul>
+<li><p>通过所有测例：</p>
+<p>CI 使用的测例与本地相同，测试中，user 文件夹及其它与构建相关的文件将被替换，请不要试图依靠硬编码通过测试。</p>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">注解</p>
+<p>你的实现只需且必须通过测例，建议读者感到困惑时先检查测例。</p>
+</div>
+</div>
+</div>
+<div class="section" id="id6">
+<h2>问答作业<a class="headerlink" href="#id6" title="永久链接至标题">¶</a></h2>
+<ol class="arabic simple">
+<li><p>请学习 gdb 调试工具的使用(这对后续调试很重要)，并通过 gdb 简单跟踪从机器加电到跳转到 0x80200000 的简单过程。只需要描述重要的跳转即可，只需要描述在 qemu 上的情况。</p></li>
+</ol>
+<p>tips:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>事实上进入 rustsbi 之后就不需要使用 gdb 调试了。可以直接阅读代码。 <a class="reference external" href="https://github.com/rustsbi/rustsbi-qemu/blob/7d71bfb7b3ad8e36f06f92c2ffe2066bbb0f9254/rustsbi-qemu/src/main.rs#L56">rustsbi起始代码</a> 。</p></li>
+<li><p>可以使用示例代码 Makefile 中的 <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">debug</span></code> 指令。</p></li>
+<li><dl class="simple">
+<dt>一些可能用到的 gdb 指令：</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">x/10i</span> <span class="pre">0x80000000</span></code> : 显示 0x80000000 处的10条汇编指令。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">x/10i</span> <span class="pre">$pc</span></code> : 显示即将执行的10条汇编指令。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">x/10xw</span> <span class="pre">0x80000000</span></code> : 显示 0x80000000 处的10条数据，格式为16进制32bit。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">info</span> <span class="pre">register</span></code>: 显示当前所有寄存器信息。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">info</span> <span class="pre">r</span> <span class="pre">t0</span></code>: 显示 t0 寄存器的值。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">break</span> <span class="pre">funcname</span></code>: 在目标函数第一条指令处设置断点。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">break</span> <span class="pre">*0x80200000</span></code>: 在 0x80200000 出设置断点。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">continue</span></code>: 执行直到碰到断点。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">si</span></code>: 单步执行一条汇编指令。</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<ol class="arabic" start="2">
+<li><p>正确进入 U 态后，程序的特征还应有：使用 S 态特权指令，访问 S 态寄存器后会报错。请同学们可以自行测试这些内容（参考 <a class="reference external" href="https://github.com/DeathWish5/riscvos-c-tests/tree/main/user/src">前三个测例</a> ，描述程序出错行为，同时注意注明你使用的 sbi 及其版本。</p></li>
+<li><p>请结合用例理解 <a class="reference external" href="https://github.com/DeathWish5/uCore-Tutorial-v2/blob/ch2/os/trampoline.S">trampoline.S</a> 中两个函数 <cite>userret</cite> 和 <cite>uservec</cite> 的作用，并回答如下几个问题:</p>
+<blockquote>
+<div><ol class="arabic">
+<li><p>L79: 刚进入 <cite>userret</cite> 时，<cite>a0</cite>、<cite>a1</cite> 分别代表了什么值。</p></li>
+<li><p>L87-L88: <cite>sfence</cite> 指令有何作用？为什么要执行该指令，当前章节中，删掉该指令会导致错误吗？</p>
+<blockquote>
+<div><div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>csrw satp, a1
+sfence.vma zero, zero
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>L96-L125: 为何注释中说要除去 <cite>a0</cite>？哪一个地址代表 <cite>a0</cite>？现在 <cite>a0</cite> 的值存在何处？</p>
+<blockquote>
+<div><div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span># restore all but a0 from TRAPFRAME
+ld ra, 40(a0)
+ld sp, 48(a0)
+ld t5, 272(a0)
+ld t6, 280(a0)
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p><cite>userret</cite>：中发生状态切换在哪一条指令？为何执行之后会进入用户态？</p></li>
+<li><p>L29： 执行之后，a0 和 sscratch 中各是什么值，为什么？</p>
+<blockquote>
+<div><div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>csrrw a0, sscratch, a0
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>L32-L61: 从 trapframe 第几项开始保存？为什么？是否从该项开始保存了所有的值，如果不是，为什么？</p>
+<blockquote>
+<div><div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>sd ra, 40(a0)
+sd sp, 48(a0)
+...
+sd t5, 272(a0)
+sd t6, 280(a0)
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>进入 S 态是哪一条指令发生的？</p></li>
+<li><p>L75-L76: <cite>ld t0, 16(a0)</cite> 执行之后，<a href="#id8"><span class="problematic" id="id9">`</span></a>t0`中的值是什么，解释该值的由来？</p>
+<div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>ld t0, 16(a0)
+jr t0
+</pre></div>
+</div>
+</li>
+</ol>
+</div></blockquote>
+</li>
+<li><p>请依次简要回答如下问题：</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>程序陷入内核的原因有中断和异常（系统调用），请问 RISC-V 64 支持哪些中断 / 异常？</p></li>
+<li><p>如何判断进入内核是由于中断还是异常？请描述陷入内核时的几个重要寄存器及其值。</p></li>
+<li><p>为了方便 os 处理，Ｍ 态软件会将 S 态异常/中断委托给 S 态软件，请指出有哪些寄存器记录了委托信息。</p></li>
+<li><p>RustSBI 委托了哪些异常/中断？（提示：看看 RustSBI 在启动时输出了什么？）</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ol>
+</div>
+<div class="section" id="id10">
+<h2>报告要求<a class="headerlink" href="#id10" title="永久链接至标题">¶</a></h2>
+<ul class="simple">
+<li><p>pdf 格式，CI 网站提交，注明姓名学号。</p></li>
+<li><p>注意目录要求，报告命名 <code class="docutils literal notranslate"><span class="pre">lab1.pdf</span></code>，位于 <code class="docutils literal notranslate"><span class="pre">reports</span></code> 目录下。命名错误视作没有提交。后续实验同理。</p></li>
+<li><p>简单总结本次实验你新添加的代码。</p></li>
+<li><p>完成问答问题。</p></li>
+<li><p>[可选，不占分]你对本次实验设计及难度/工作量的看法，以及有哪些需要改进的地方，欢迎畅所欲言。</p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">警告</p>
+<p>请勿抄袭，报告会进行抽样查重！</p>
+</div>
+</div>
+</div>
+
+      </article>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../chapter4/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">第四章：地址空间</div>
+              </div>
+              <svg><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="4time-sharing-system.html">
+              <svg><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">分时多任务系统与抢占式调度</div>
+                
+              </div>
+            </a>
+        </div>
+
+        <div class="related-information">
+              Copyright &#169; 2020, Yifan Wu
+            |
+            Built with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+              and
+              <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+              <a href="https://github.com/pradyunsg/furo">Furo theme</a>.
+            |
+            <a class="muted-link" href="../_sources/chapter3/5exercise.rst.txt"
+               rel="nofollow">
+              显示源代码
+            </a>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            目录
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">chapter3练习</a><ul>
+<li><a class="reference internal" href="#id1">本章任务</a><ul>
+<li><a class="reference internal" href="#id2">读取目录信息</a></li>
+<li><a class="reference internal" href="#id3">获取任务信息</a></li>
+<li><a class="reference internal" href="#id4">打印调用堆栈（选做）</a></li>
+<li><a class="reference internal" href="#id5">实验要求</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id6">问答作业</a></li>
+<li><a class="reference internal" href="#id10">报告要求</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/scripts/main.js"></script>
+    <script kind="utterances">
+
+    var commentsRunWhenDOMLoaded = cb => {
+    if (document.readyState != 'loading') {
+        cb()
+    } else if (document.addEventListener) {
+        document.addEventListener('DOMContentLoaded', cb)
+    } else {
+        document.attachEvent('onreadystatechange', function() {
+        if (document.readyState == 'complete') cb()
+        })
+    }
+}
+
+var addUtterances = () => {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://utteranc.es/client.js";
+    script.async = "async";
+
+    script.setAttribute("repo", "LearningOS/uCore-Tutorial-Guide");
+    script.setAttribute("issue-term", "pathname");
+    script.setAttribute("theme", "github-light");
+    script.setAttribute("label", "comments");
+    script.setAttribute("crossorigin", "anonymous");
+
+    sections = document.querySelectorAll("div.section");
+    if (sections !== null) {
+        section = sections[sections.length-1];
+        section.appendChild(script);
+    }
+}
+commentsRunWhenDOMLoaded(addUtterances);
+</script>
+    <script src="../_static/translations.js"></script>
+    </body>
+</html>

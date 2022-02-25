@@ -1,0 +1,691 @@
+<!doctype html>
+<html class="no-js" lang="zh_CN">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="进程通讯与 fork" href="2pipe.html" /><link rel="prev" title="引言" href="0intro.html" />
+
+    <meta name="generator" content="sphinx-4.1.2, furo 2021.08.31"/>
+        <title>文件系统初步 - uCore-Tutorial-Book-v2 0.1 文档</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=c7c65a82b42f6b978e58466c1e9ef2509836d916" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=16fb25fabf47304eee183a5e9af80b1ba98259b1" />
+    <link rel="stylesheet" type="text/css" href="../_static/my_style.css" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  body[data-theme="dark"] {
+    --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+  }
+  @media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+  }
+</style></head>
+  <body>
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke="none" d="M0 0h24v24H0z" />
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="10" y1="12" x2="20" y2="12" />
+      <line x1="6" y1="18" x2="20" y2="18" />
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">uCore-Tutorial-Book-v2 0.1 文档</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  
+  <span class="sidebar-brand-text">uCore-Tutorial-Book-v2 0.1 文档</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder=搜索 name="q" aria-label="搜索">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Part1 - Just do it!</span></p>
+<ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter0/index.html">第零章：实验环境搭建</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter0/1setup-devel-env.html">实验环境配置</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter1/index.html">第一章：应用程序与基本执行环境</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter1/0intro.html">引言</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter1/1app-ee-platform.html">代码框架简述</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter1/2remove-std.html">makefile 和 qemu</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter1/3exercise.html">chapter1练习</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter2/index.html">第二章：批处理系统</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter2/0intro.html">引言</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/1rv-privilege.html">特权级机制</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/2application.html">实现应用程序以及user文件夹</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/3batch-system.html">实现批处理操作系统的细节</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/4exercise.html">chapter2练习</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter3/index.html">第三章：多道程序与分时多任务</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/1multi-loader.html">多道程序放置与加载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/2proc-basic.html">进程基础结构</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/3multiprogramming.html">多道程序与协作式调度</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/4time-sharing-system.html">分时多任务系统与抢占式调度</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/5exercise.html">chapter3练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter4/index.html">第四章：地址空间</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/1rust-dynamic-allocation.html">C 中的动态内存分配</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/2address-space.html">地址空间</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/3sv39-implementation-1.html">SV39多级页表机制：内容介绍</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/4sv39-implementation-2.html">SV39多级页表机制：OS实现</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/7exercise.html">chapter4练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter5/index.html">第五章：进程及进程管理</a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/1process.html">进程的重要系统调用</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/2core-data-structures.html">shell与测例的加载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/3exercise.html">chapter5练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter6/index.html">第六章：文件系统与I/O重定向</a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/1fs-interface.html">文件系统接口</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/2fs-implementation.html">nfs文件系统</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/5exercise.html">chapter6练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">第七章：进程间通信</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="0intro.html">引言</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">文件系统初步</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2pipe.html">进程通讯与 fork</a></li>
+<li class="toctree-l2"><a class="reference internal" href="3exercise.html">chapter6练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter8/index.html">第八章：并发</a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter8/0exercise.html">chapter8练习</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">开发注记</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../setup-sphinx.html">修改和构建本项目</a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../rest-example.html">reStructuredText 基本语法</a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <article role="main">
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <div class="section" id="id1">
+<h1>文件系统初步<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h1>
+<div class="section" id="id2">
+<h2>文件简介<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
+<p>在Unix操作系统之前，大多数的操作系统提供了各种复杂且不规则的设计实现来处理各种I/O设备（也可称为I/O资源），如键盘、显示器、以磁盘为代表的存储介质、以串口为代表的通信设备等，使得应用程序开发繁琐且很难统一表示和处理I/O设备。随着UNIX的诞生，一个简洁优雅的I/O设备的抽象出现了，这就是 <strong>文件</strong> 。在 Unix 操作系统中，”<strong>一切皆文件</strong>“ (Everything is a file) 是一种重要的设计思想，这种设计思想继承于 Multics 操作系统的 <strong>通用性</strong> 的设计理念，并进行了进一步的简化。在本章中，应用程序看到并被操作系统管理的 <strong>文件</strong> (File) 就是一系列的字节组合。操作系统不关心文件内容，只关心如何对文件按字节流进行读写的机制，这就意味着任何程序可以读写任何文件（即字节流），对文件具体内容的解析是应用程序的任务，操作系统对此不做任何干涉。例如，一个Rust编译器可以读取一个C语言源程序并进行编译，操作系统并并不会阻止这样的事情发生。</p>
+<p>有了文件这样的抽象后，操作系统内核就可把能读写的I/O资源按文件来进行管理，并把文件分配给进程，让进程以统一的文件访问接口与I/O 资源进行交互。在我们目前涉及到的I/O硬件设备中，大致可以分成以下几种：</p>
+<ul class="simple">
+<li><p><strong>键盘设备</strong> 是程序获得字符输入的一种设备，也可抽象为一种只读性质的文件，可以从这个文件中读出一系列的字节序列；</p></li>
+<li><p><strong>屏幕设备</strong> 是展示程序的字符输出结果的一种字符显示设备，可抽象为一种只写性质的文件，可以向这个文件中写入一系列的字节序列，在显示屏上可以直接呈现出来；</p></li>
+<li><p><strong>串口设备</strong> 是获得字符输入和展示程序的字符输出结果的一种字符通信设备，可抽象为一种可读写性质的文件，可以向这个文件中写入一系列的字节序列传给程序，也可把程序要显示的字符传输出去；还可以把这个串口设备拆分成两个文件，一个用于获取输入字符的只读文件和一个传出输出字符的只写文件。</p></li>
+</ul>
+<p>在QEMU模拟的RV计算机和K210物理硬件上存在串口设备，操作系统通过串口设备的输入侧连接到了同学使用的计算机的键盘设备，而串口设备的输出侧这连接到了同学使用的计算机的显示器窗口上。由于RustSBI直接管理了串口设备，并给操作系统提供了两个SBI接口，从而使得操作系统可以很简单地通过这两个SBI接口输出或输入字符。</p>
+<p>文件是提供给应用程序用的，但有操作系统来进行管理。虽然文件可代表很多种不同类型的I/O 资源，但是在进程看来，所有文件的访问都可以通过一个很简洁的统一抽象接口 <code class="docutils literal notranslate"><span class="pre">File</span></code> 来进行。我们看一下我们OS框架是如何定义一个文件的：</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// file.h</span>
+<span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">FD_NONE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">FD_PIPE</span><span class="p">}</span><span class="w"> </span><span class="n">type</span><span class="p">;</span><span class="w">  </span><span class="c1">// FD_NODE means this file is null.</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">ref</span><span class="p">;</span><span class="w">           </span><span class="c1">// reference count</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">readable</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">writable</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">pipe</span><span class="w"> </span><span class="o">*</span><span class="n">pipe</span><span class="p">;</span><span class="w"> </span><span class="c1">// FD_PIPE</span>
+<span class="p">};</span><span class="w"></span>
+
+<span class="c1">// 全局文件池</span>
+<span class="k">extern</span><span class="w"> </span><span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="n">filepool</span><span class="p">[</span><span class="mi">128</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">16</span><span class="p">];</span><span class="w"></span>
+</pre></div>
+</div>
+<p>可以看到一个文件在我们OS对应的结构体之中存储了其种类（本章目前只有管道，下一章会引入新的支持）。注意我们不认为 stdin、stdout、stderr 是真正的文件，而是直接和串口接在一起。所以虽然它们占有fd，但是没有给它们分配文件种类。大家可以通过分配给它们的fd值来区分是不是标准输入输出错误流。</p>
+<p>和内存池一样，文件我们也采用了比较简答的文件池写法。OS全局的文件数量是有上限的。</p>
+<p>文件的ref记录了其引用的次数。我们分配一个文件时，会遍历文件池寻找ref为0的文件来分配（注意这里只是OS分配，我们没有支持sys_open去打开在某个地址的文件的调用，它在lab7实现）。同理关闭文件就是减少其对应的ref值。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// os/file.c</span>
+<span class="k">struct</span> <span class="nc">file</span><span class="o">*</span><span class="w"> </span><span class="n">filealloc</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">FILE_MAX</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">filepool</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">ref</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="n">filepool</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">ref</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="n">filepool</span><span class="p">[</span><span class="n">i</span><span class="p">];</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="kt">void</span><span class="w"></span>
+<span class="n">fileclose</span><span class="p">(</span><span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="o">*</span><span class="n">f</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="o">--</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">ref</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">FD_PIPE</span><span class="p">){</span><span class="w"></span>
+<span class="w">        </span><span class="n">pipeclose</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">pipe</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">writable</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="nc">file</span><span class="p">));</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>注意文件对于进程而言也是其需要记录的一种资源，因此我们在进程对应的PCB结构体之中也需要记录进程打开的文件信息。我们给PCB增加文件指针数组。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// proc.h</span>
+<span class="c1">// Per-process state</span>
+<span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// ...</span>
+
+<span class="o">+</span><span class="w">   </span><span class="k">struct</span> <span class="nc">file</span><span class="o">*</span><span class="w"> </span><span class="n">files</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span><span class="w"></span>
+<span class="p">};</span><span class="w"></span>
+
+<span class="c1">// os/proc.c</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">fdalloc</span><span class="p">(</span><span class="k">struct</span> <span class="nc">file</span><span class="o">*</span><span class="w"> </span><span class="n">f</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="o">*</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_proc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// fd = 0,1,2 is reserved for stdio/stdout/stderr</span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">FD_MAX</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">files</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">files</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">f</span><span class="p">;</span><span class="w"></span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">i</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>一个进程能打开的文件是有限的（我们设置为16）。一个进程如果要打开某一个文件，其文件指针数组必须有空位。如果有，就把下标做为文件的fd，并把指定文件指针存入数组之中。</p>
+</div>
+<div class="section" id="pipe">
+<h2>pipe管道的实现<a class="headerlink" href="#pipe" title="永久链接至标题">¶</a></h2>
+<p>管道是一种进程间通信的方式。它允许管道两端的进程互相传递信息。我们OS框架对于pipe的设计十分简单: 找一块空闲内存作为 pipe 的 data buffer，两端的进程对 pipe 的读写就转化为了对这块内存的读写。虽然逻辑十分简单，但是进程读写管道实际还是通过sys_write和sys_read来实现的。sys_write 还同时需要完成屏幕输出，一个程序还可以拥有多个 pipe，而且 pipe 还要能够使得其他程序可见来完成进程通讯的功能，对每个 pipe 还要维护一些状态来记录上一次读写到的位置和 pipe 实际可读的 size等。因此我们也需要关注一下我们OS pipe实现的细节。</p>
+<p>首先，看一下管道的结构体。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// file.h，抽象成一个文件了。</span>
+<span class="cp">#define PIPESIZE 512</span>
+
+<span class="k">struct</span> <span class="nc">pipe</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="n">PIPESIZE</span><span class="p">];</span><span class="w"></span>
+<span class="w">    </span><span class="n">uint</span><span class="w"> </span><span class="n">nread</span><span class="p">;</span><span class="w">     </span><span class="c1">// number of bytes read</span>
+<span class="w">    </span><span class="n">uint</span><span class="w"> </span><span class="n">nwrite</span><span class="p">;</span><span class="w">    </span><span class="c1">// number of bytes written</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">readopen</span><span class="p">;</span><span class="w">   </span><span class="c1">// read fd is still open</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">writeopen</span><span class="p">;</span><span class="w">  </span><span class="c1">// write fd is still open</span>
+<span class="p">};</span><span class="w"></span>
+</pre></div>
+</div>
+<p>可以看到，管道把数据存在了一个char数组的缓存之中来维护。这里我们以ring buffer的形式管理管道的data buffer。</p>
+<p>我们来看一下如何创建一个管道。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="o">:</span><span class="nl">linenos</span><span class="p">:</span><span class="w"></span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">pipealloc</span><span class="p">(</span><span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="o">*</span><span class="n">f0</span><span class="p">,</span><span class="w"> </span><span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="o">*</span><span class="n">f1</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 这里没有用预分配，由于 pipe 比较大，直接拿一个页过来，也不算太浪费</span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">pipe</span><span class="w"> </span><span class="o">*</span><span class="n">pi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="k">struct</span> <span class="nc">pipe</span><span class="o">*</span><span class="p">)</span><span class="n">kalloc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 一开始 pipe 可读可写，但是已读和已写内容为 0</span>
+<span class="w">    </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">readopen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">writeopen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nwrite</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nread</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// 两个参数分别通过 filealloc 得到，把该 pipe 和这两个文件关连，一端可读，一端可写。读写端控制是 sys_pipe 的要求。</span>
+<span class="w">    </span><span class="n">f0</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FD_PIPE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">f0</span><span class="o">-&gt;</span><span class="n">readable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">f0</span><span class="o">-&gt;</span><span class="n">writable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">f0</span><span class="o">-&gt;</span><span class="n">pipe</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pi</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">f1</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FD_PIPE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">f1</span><span class="o">-&gt;</span><span class="n">readable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">f1</span><span class="o">-&gt;</span><span class="n">writable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">f1</span><span class="o">-&gt;</span><span class="n">pipe</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pi</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">注解</p>
+<p>在内核中，我们是不能 new 一个结构体的，这是由于我们没有实现堆内存管理。但我们可以用一种略显浪费的方式，也就是直接 kalloc() 一个页，只要不大于一整个页的数据结构都可以这样 new 出来。</p>
+</div>
+<p>管道两端的输入和输出被我们抽象成了两个文件。这两个文件的创建由sys_pipe调用完成。我们在分配时就会设置管道两端哪一端可写哪一端可读，并初始化管道本身的nread和nwrite记录buffer的指针。</p>
+<p>关闭pipe比较简单。函数其实只关闭了读写端中的一个，如果两个都被关闭，释放 pipe。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="o">:</span><span class="nl">linenos</span><span class="p">:</span><span class="w"></span>
+
+<span class="kt">void</span><span class="w"> </span><span class="n">pipeclose</span><span class="p">(</span><span class="k">struct</span> <span class="nc">pipe</span><span class="w"> </span><span class="o">*</span><span class="n">pi</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">writable</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">writable</span><span class="p">){</span><span class="w"></span>
+<span class="w">        </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">writeopen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">readopen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">readopen</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">writeopen</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">){</span><span class="w"></span>
+<span class="w">        </span><span class="n">kfree</span><span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">pi</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>重点是管道的读写.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="o">:</span><span class="nl">linenos</span><span class="p">:</span><span class="w"></span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">pipewrite</span><span class="p">(</span><span class="k">struct</span> <span class="nc">pipe</span><span class="w"> </span><span class="o">*</span><span class="n">pi</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">addr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// w 记录已经写的字节数</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_proc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">while</span><span class="p">(</span><span class="n">w</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">){</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// 若不可读，写也没有意义</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">readopen</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">){</span><span class="w"></span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nwrite</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nread</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">PIPESIZE</span><span class="p">){</span><span class="w"></span>
+<span class="w">            </span><span class="c1">// pipe write 端已满，阻塞</span>
+<span class="w">            </span><span class="n">yield</span><span class="p">();</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="c1">// 一次读的 size 为 min(用户buffer剩余，pipe 剩余写容量，pipe 剩余线性容量)</span>
+<span class="w">            </span><span class="n">uint64</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MIN</span><span class="p">(</span><span class="w"></span>
+<span class="w">                </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"></span>
+<span class="w">                </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nread</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">PIPESIZE</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nwrite</span><span class="p">,</span><span class="w"></span>
+<span class="w">                </span><span class="n">PIPESIZE</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nwrite</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">PIPESIZE</span><span class="p">)</span><span class="w"></span>
+<span class="w">            </span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="c1">// 使用 copyin 读入用户 buffer 内容</span>
+<span class="w">            </span><span class="n">copyin</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">[</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nwrite</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">PIPESIZE</span><span class="p">],</span><span class="w"> </span><span class="n">addr</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">size</span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nwrite</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">size</span><span class="p">;</span><span class="w"></span>
+<span class="w">            </span><span class="n">w</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">size</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">w</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">piperead</span><span class="p">(</span><span class="k">struct</span> <span class="nc">pipe</span><span class="w"> </span><span class="o">*</span><span class="n">pi</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">addr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// r 记录已经写的字节数</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_proc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 若 pipe 可读内容为空，阻塞或者报错</span>
+<span class="w">    </span><span class="k">while</span><span class="p">(</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nread</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nwrite</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">writeopen</span><span class="p">)</span><span class="w"></span>
+<span class="w">            </span><span class="n">yield</span><span class="p">();</span><span class="w"></span>
+<span class="w">        </span><span class="k">else</span><span class="w"></span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="k">while</span><span class="p">(</span><span class="n">r</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// pipe 可读内容为空，返回</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nread</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nwrite</span><span class="p">)</span><span class="w"></span>
+<span class="w">            </span><span class="k">break</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// 一次写的 size 为：min(用户buffer剩余，可读内容，pipe剩余线性容量)</span>
+<span class="w">        </span><span class="n">uint64</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MIN</span><span class="p">(</span><span class="w"></span>
+<span class="w">            </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"></span>
+<span class="w">            </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nwrite</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nread</span><span class="p">,</span><span class="w"></span>
+<span class="w">            </span><span class="n">PIPESIZE</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nread</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">PIPESIZE</span><span class="p">)</span><span class="w"></span>
+<span class="w">        </span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// 使用 copyout 写用户内存</span>
+<span class="w">        </span><span class="n">copyout</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">addr</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">[</span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nread</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">PIPESIZE</span><span class="p">],</span><span class="w"> </span><span class="n">size</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">pi</span><span class="o">-&gt;</span><span class="n">nread</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">size</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="n">r</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">size</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">r</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>由于我们的管道是由ring buffer形式来管理的，其本身的容量只有PAGESIZE大小，因此需要使用nread和nwrite两个指针来记录当前两端分别写到哪里了（它们的绝对值可以大于PAGESIZE，关键是两者的差值）。由于必须写了才能读，因此有关系 nwrite &gt;= nread。相等意味着当前已经读完了，就退出piperead。如果nwrite - nread == PAGESIZE 则说明已经写满了整个PAGESIZE，不能再写了，会覆盖住没读的部分。如果能写入，就会将数据写入data之中，注意由于是环形，如果nwrite % PAGESIZE != 0并且当前指针位置到环尾写不下要写入的数据,会从环头继续写.大家可以仔细阅读write的实现。</p>
+</div>
+<div class="section" id="id3">
+<h2>pipe 相关系统调用<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h2>
+<p>首先是sys_pipe.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="o">:</span><span class="nl">linenos</span><span class="p">:</span><span class="w"></span>
+
+<span class="c1">// os/syscall.c</span>
+<span class="n">uint64</span><span class="w"> </span><span class="n">sys_pipe</span><span class="p">(</span><span class="n">uint64</span><span class="w"> </span><span class="n">fdarray</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_proc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 申请两个空 file</span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">file</span><span class="o">*</span><span class="w"> </span><span class="n">f0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">filealloc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">file</span><span class="o">*</span><span class="w"> </span><span class="n">f1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">filealloc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 实际分配一个 pipe，与两个文件关联</span>
+<span class="w">    </span><span class="n">pipealloc</span><span class="p">(</span><span class="n">f0</span><span class="p">,</span><span class="w"> </span><span class="n">f1</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 分配两个 fd，并将之与 文件指针关联</span>
+<span class="w">    </span><span class="n">fd0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fdalloc</span><span class="p">(</span><span class="n">f0</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">fd1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fdalloc</span><span class="p">(</span><span class="n">f1</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">PSIZE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">fd0</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">copyout</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">fdarray</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">fd0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">fd0</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">copyout</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">fdarray</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">uint64</span><span class="p">),</span><span class="w"> </span><span class="o">&amp;</span><span class="n">fd1</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">fd1</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>这个系统调用完成了创建一个pipe并记录下两端对应file的功能。并把对应的fd写入user传入的数组地址之中传回user态。</p>
+<p>sys_close比较简单。就只是释放掉进程的fd并且清空对应file，并且设置其种类为FD_NONE.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="o">:</span><span class="nl">linenos</span><span class="p">:</span><span class="w"></span>
+
+<span class="n">uint64</span><span class="w"> </span><span class="n">sys_close</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 目前不支持 stdio 的关闭，ch7会支持这个</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fd</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">fd</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">FD_BUFFER_SIZE</span><span class="p">)</span><span class="w"></span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_proc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="o">*</span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">files</span><span class="p">[</span><span class="n">fd</span><span class="p">];</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 目前仅支持关闭 pipe</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">FD_PIPE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">fileclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">panic</span><span class="p">(</span><span class="s">"fileclose: unsupported file type %d fd = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="n">fd</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">files</span><span class="p">[</span><span class="n">fd</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="kt">void</span><span class="w"> </span><span class="n">fileclose</span><span class="p">(</span><span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="o">*</span><span class="n">f</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// ref == 0 才真正关闭</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="o">--</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">ref</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// pipe 类型需要关闭对应的 pipe</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">FD_PIPE</span><span class="p">){</span><span class="w"></span>
+<span class="w">        </span><span class="n">pipeclose</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">pipe</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">writable</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 清空其他数据</span>
+<span class="w">    </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">off</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">readable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">writable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">ref</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FD_NONE</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>原来的 sys_write 更名为 console_write，新 sys_write 根据文件类型分别调用 console_write 和 pipe_write。sys_read 同理。具体的区分是通过判断fd来进行的。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="n">uint64</span><span class="w"> </span><span class="nf">sys_write</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">len</span><span class="p">)</span><span class="w"></span>
+<span class="linenos"> 2</span><span class="p">{</span><span class="w"></span>
+<span class="linenos"> 3</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fd</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">STDOUT</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">fd</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">STDERR</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos"> 4</span><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">console_write</span><span class="p">(</span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="p">);</span><span class="w"></span>
+<span class="linenos"> 5</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="linenos"> 6</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fd</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">fd</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">FD_BUFFER_SIZE</span><span class="p">)</span><span class="w"></span>
+<span class="linenos"> 7</span><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w"></span>
+<span class="linenos"> 8</span><span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_proc</span><span class="p">();</span><span class="w"></span>
+<span class="linenos"> 9</span><span class="w">    </span><span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="o">*</span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">files</span><span class="p">[</span><span class="n">fd</span><span class="p">];</span><span class="w"></span>
+<span class="linenos">10</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">FD_PIPE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">11</span><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">pipewrite</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">pipe</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">12</span><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">13</span><span class="w">        </span><span class="n">panic</span><span class="p">(</span><span class="s">"unknown file type %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">14</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="linenos">15</span><span class="p">}</span><span class="w"></span>
+<span class="linenos">16</span>
+<span class="linenos">17</span><span class="n">uint64</span><span class="w"> </span><span class="nf">sys_read</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">len</span><span class="p">)</span><span class="w"></span>
+<span class="linenos">18</span><span class="p">{</span><span class="w"></span>
+<span class="linenos">19</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fd</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">STDIN</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">20</span><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">console_read</span><span class="p">(</span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">21</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="linenos">22</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fd</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">fd</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">FD_BUFFER_SIZE</span><span class="p">)</span><span class="w"></span>
+<span class="linenos">23</span><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">24</span><span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_proc</span><span class="p">();</span><span class="w"></span>
+<span class="linenos">25</span><span class="w">    </span><span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="o">*</span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">files</span><span class="p">[</span><span class="n">fd</span><span class="p">];</span><span class="w"></span>
+<span class="linenos">26</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">FD_PIPE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">27</span><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">piperead</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">pipe</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">28</span><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">29</span><span class="w">        </span><span class="n">panic</span><span class="p">(</span><span class="s">"unknown file type %d fd = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="n">fd</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">30</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="linenos">31</span><span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>注意一个文件目前fd最大就是15。</p>
+</div>
+</div>
+
+      </article>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="2pipe.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">进程通讯与 fork</div>
+              </div>
+              <svg><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="0intro.html">
+              <svg><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">引言</div>
+                
+              </div>
+            </a>
+        </div>
+
+        <div class="related-information">
+              Copyright &#169; 2020, Yifan Wu
+            |
+            Built with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+              and
+              <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+              <a href="https://github.com/pradyunsg/furo">Furo theme</a>.
+            |
+            <a class="muted-link" href="../_sources/chapter7/1file-descriptor.rst.txt"
+               rel="nofollow">
+              显示源代码
+            </a>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            目录
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">文件系统初步</a><ul>
+<li><a class="reference internal" href="#id2">文件简介</a></li>
+<li><a class="reference internal" href="#pipe">pipe管道的实现</a></li>
+<li><a class="reference internal" href="#id3">pipe 相关系统调用</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/scripts/main.js"></script>
+    <script kind="utterances">
+
+    var commentsRunWhenDOMLoaded = cb => {
+    if (document.readyState != 'loading') {
+        cb()
+    } else if (document.addEventListener) {
+        document.addEventListener('DOMContentLoaded', cb)
+    } else {
+        document.attachEvent('onreadystatechange', function() {
+        if (document.readyState == 'complete') cb()
+        })
+    }
+}
+
+var addUtterances = () => {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://utteranc.es/client.js";
+    script.async = "async";
+
+    script.setAttribute("repo", "LearningOS/uCore-Tutorial-Guide");
+    script.setAttribute("issue-term", "pathname");
+    script.setAttribute("theme", "github-light");
+    script.setAttribute("label", "comments");
+    script.setAttribute("crossorigin", "anonymous");
+
+    sections = document.querySelectorAll("div.section");
+    if (sections !== null) {
+        section = sections[sections.length-1];
+        section.appendChild(script);
+    }
+}
+commentsRunWhenDOMLoaded(addUtterances);
+</script>
+    <script src="../_static/translations.js"></script>
+    </body>
+</html>

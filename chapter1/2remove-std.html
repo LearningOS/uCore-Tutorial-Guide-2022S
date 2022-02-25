@@ -1,0 +1,496 @@
+<!doctype html>
+<html class="no-js" lang="zh_CN">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="chapter1练习" href="3exercise.html" /><link rel="prev" title="代码框架简述" href="1app-ee-platform.html" />
+
+    <meta name="generator" content="sphinx-4.1.2, furo 2021.08.31"/>
+        <title>makefile 和 qemu - uCore-Tutorial-Book-v2 0.1 文档</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=c7c65a82b42f6b978e58466c1e9ef2509836d916" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=16fb25fabf47304eee183a5e9af80b1ba98259b1" />
+    <link rel="stylesheet" type="text/css" href="../_static/my_style.css" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  body[data-theme="dark"] {
+    --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+  }
+  @media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+  }
+</style></head>
+  <body>
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke="none" d="M0 0h24v24H0z" />
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="10" y1="12" x2="20" y2="12" />
+      <line x1="6" y1="18" x2="20" y2="18" />
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">uCore-Tutorial-Book-v2 0.1 文档</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  
+  <span class="sidebar-brand-text">uCore-Tutorial-Book-v2 0.1 文档</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder=搜索 name="q" aria-label="搜索">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Part1 - Just do it!</span></p>
+<ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter0/index.html">第零章：实验环境搭建</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter0/1setup-devel-env.html">实验环境配置</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">第一章：应用程序与基本执行环境</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="0intro.html">引言</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="1app-ee-platform.html">代码框架简述</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">makefile 和 qemu</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="3exercise.html">chapter1练习</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter2/index.html">第二章：批处理系统</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter2/0intro.html">引言</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/1rv-privilege.html">特权级机制</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/2application.html">实现应用程序以及user文件夹</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/3batch-system.html">实现批处理操作系统的细节</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../chapter2/4exercise.html">chapter2练习</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter3/index.html">第三章：多道程序与分时多任务</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/1multi-loader.html">多道程序放置与加载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/2proc-basic.html">进程基础结构</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/3multiprogramming.html">多道程序与协作式调度</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/4time-sharing-system.html">分时多任务系统与抢占式调度</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter3/5exercise.html">chapter3练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter4/index.html">第四章：地址空间</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/1rust-dynamic-allocation.html">C 中的动态内存分配</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/2address-space.html">地址空间</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/3sv39-implementation-1.html">SV39多级页表机制：内容介绍</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/4sv39-implementation-2.html">SV39多级页表机制：OS实现</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter4/7exercise.html">chapter4练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter5/index.html">第五章：进程及进程管理</a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/1process.html">进程的重要系统调用</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/2core-data-structures.html">shell与测例的加载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter5/3exercise.html">chapter5练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter6/index.html">第六章：文件系统与I/O重定向</a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/1fs-interface.html">文件系统接口</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/2fs-implementation.html">nfs文件系统</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter6/5exercise.html">chapter6练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter7/index.html">第七章：进程间通信</a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/0intro.html">引言</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/1file-descriptor.html">文件系统初步</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/2pipe.html">进程通讯与 fork</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/3exercise.html">chapter6练习</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../chapter8/index.html">第八章：并发</a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chapter8/0exercise.html">chapter8练习</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">开发注记</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../setup-sphinx.html">修改和构建本项目</a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../rest-example.html">reStructuredText 基本语法</a><input class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <article role="main">
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <div class="section" id="makefile-qemu">
+<span id="term-remove-std"></span><h1>makefile 和 qemu<a class="headerlink" href="#makefile-qemu" title="永久链接至标题">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<div class="section" id="id1">
+<h2>本节导读<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
+<p>为了帮助大家进一步理解我们的项目的链接和编译的过程，这里简要介绍一下 makefile 的内容。</p>
+<div class="admonition warning">
+<p class="admonition-title">警告</p>
+<p>注意，makefile 在整个实验过程中不可修改，否则可能导致 CI 无法通过！</p>
+</div>
+</div>
+<div class="section" id="makefile">
+<h2>makefile 内部<a class="headerlink" href="#makefile" title="永久链接至标题">¶</a></h2>
+<div class="section" id="id2">
+<h3>指定编译使用的工具<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h3>
+<div class="highlight-makefile notranslate"><div class="highlight"><pre><span></span><span class="nv">TOOLPREFIX</span> <span class="o">=</span> riscv64-unknown-elf-
+<span class="nv">CC</span> <span class="o">=</span> <span class="k">$(</span>TOOLPREFIX<span class="k">)</span>gcc
+<span class="nv">AS</span> <span class="o">=</span> <span class="k">$(</span>TOOLPREFIX<span class="k">)</span>gas
+<span class="nv">LD</span> <span class="o">=</span> <span class="k">$(</span>TOOLPREFIX<span class="k">)</span>ld
+<span class="nv">OBJCOPY</span> <span class="o">=</span> <span class="k">$(</span>TOOLPREFIX<span class="k">)</span>objcopy
+<span class="nv">OBJDUMP</span> <span class="o">=</span> <span class="k">$(</span>TOOLPREFIX<span class="k">)</span>objdump
+<span class="nv">GDB</span> <span class="o">=</span> <span class="k">$(</span>TOOLPREFIX<span class="k">)</span>gdb
+</pre></div>
+</div>
+<p>这里makefile调用了大家设定好的PATH之中的riscv64工具链。如果没有设置好，那么之后的编译就会因为找不到这些文件而出错。</p>
+</div>
+<div class="section" id="flag">
+<h3>添加编译flag<a class="headerlink" href="#flag" title="永久链接至标题">¶</a></h3>
+<div class="highlight-makefile notranslate"><div class="highlight"><pre><span></span><span class="nv">CFLAGS</span> <span class="o">=</span> -Wall -Werror -O -fno-omit-frame-pointer -ggdb
+<span class="nv">CFLAGS</span> <span class="o">+=</span> -MD
+<span class="nv">CFLAGS</span> <span class="o">+=</span> -mcmodel<span class="o">=</span>medany
+<span class="nv">CFLAGS</span> <span class="o">+=</span> -ffreestanding -fno-common -nostdlib -mno-relax
+<span class="nv">CFLAGS</span> <span class="o">+=</span> -I.
+<span class="nv">CFLAGS</span> <span class="o">+=</span> <span class="k">$(</span>shell <span class="k">$(</span>CC<span class="k">)</span> -fno-stack-protector -E -x c /dev/null &gt;/dev/null <span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span> <span class="o">&amp;&amp;</span> <span class="nb">echo</span> -fno-stack-protector<span class="k">)</span>
+</pre></div>
+</div>
+<p>比较需要注意的是我们设置了警告也会报错，因此大家写代码的时候最好避免 warning 的出现，这是良好的编程习惯。</p>
+</div>
+<div class="section" id="id3">
+<h3>设置编译目标<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h3>
+<div class="highlight-makefile notranslate"><div class="highlight"><pre><span></span><span class="c"># 目录定义</span>
+<span class="nv">K</span> <span class="o">=</span> os
+<span class="nv">BUILDDIR</span> <span class="o">=</span> build
+<span class="c"># .o 目标的确定，也就是 os 目录下所有的 .c 和 .s 都编译成 .o</span>
+<span class="nv">C_SRCS</span> <span class="o">=</span> <span class="k">$(</span>wildcard <span class="nv">$K</span>/*.c<span class="k">)</span>
+<span class="nv">AS_SRCS</span> <span class="o">=</span> <span class="k">$(</span>wildcard <span class="nv">$K</span>/*.S<span class="k">)</span>
+<span class="nv">C_OBJS</span> <span class="o">=</span> <span class="k">$(</span>addprefix <span class="k">$(</span>BUILDDIR<span class="k">)</span>/, <span class="k">$(</span>addsuffix .o, <span class="k">$(</span>basename <span class="k">$(</span>C_SRCS<span class="k">))))</span>
+<span class="nv">AS_OBJS</span> <span class="o">=</span> <span class="k">$(</span>addprefix <span class="k">$(</span>BUILDDIR<span class="k">)</span>/, <span class="k">$(</span>addsuffix .o, <span class="k">$(</span>basename <span class="k">$(</span>AS_SRCS<span class="k">))))</span>
+<span class="nv">OBJS</span> <span class="o">=</span> <span class="k">$(</span>C_OBJS<span class="k">)</span> <span class="k">$(</span>AS_OBJS<span class="k">)</span>
+<span class="c"># kernel 镜像由所有的 .o 按照 kernel.ld 链接而成</span>
+<span class="nf">$(BUILDDIR)/kernel</span><span class="o">:</span> <span class="k">$(</span><span class="nv">OBJS</span><span class="k">)</span> <span class="k">$(</span><span class="nv">K</span><span class="k">)</span>/<span class="n">kernel</span>.<span class="n">ld</span>
+   <span class="k">$(</span>LD<span class="k">)</span> <span class="k">$(</span>LDFLAGS<span class="k">)</span> -T kernel.ld -o kernel <span class="k">$(</span>OBJS<span class="k">)</span>
+</pre></div>
+</div>
+<p>请同学们自行查阅并了解``wildcard``、<code class="docutils literal notranslate"><span class="pre">addprefix</span></code>、<code class="docutils literal notranslate"><span class="pre">addsuffix</span></code>、<a href="#id4"><span class="problematic" id="id5">``</span></a>basename``的意义。</p>
+</div>
+<div class="section" id="qemu">
+<h3>运行 qemu<a class="headerlink" href="#qemu" title="永久链接至标题">¶</a></h3>
+<div class="highlight-makefile notranslate"><div class="highlight"><pre><span></span><span class="nv">QEMU</span> <span class="o">=</span> qemu-system-riscv64
+<span class="nv">QEMUOPTS</span> <span class="o">=</span> <span class="se">\</span>
+   -nographic <span class="se">\</span>
+   -smp <span class="k">$(</span>CPUS<span class="k">)</span> <span class="se">\</span>
+   -machine virt <span class="se">\</span>
+   -bios <span class="k">$(</span>BOOTLOADER<span class="k">)</span> <span class="se">\</span>
+   -kernel kernel
+
+<span class="nf">run</span><span class="o">:</span> <span class="k">$(</span><span class="nv">BUILDDIR</span><span class="k">)</span>/<span class="n">kernel</span>
+<span class="k">$(</span><span class="nv">QEMU</span><span class="k">)</span> <span class="k">$(</span><span class="nv">QEMUOPTS</span><span class="k">)</span>
+</pre></div>
+</div>
+<p>这里和前面一致。大家不需要太关心qemu的更多细节，我们涉及它的操作已经在makefile和sbi之中处理了。</p>
+</div>
+<div class="section" id="gdb">
+<h3>gdb 调试<a class="headerlink" href="#gdb" title="永久链接至标题">¶</a></h3>
+<div class="highlight-makefile notranslate"><div class="highlight"><pre><span></span><span class="c"># QEMU's gdb stub command line changed in 0.11</span>
+<span class="nv">QEMUGDB</span> <span class="o">=</span> <span class="k">$(</span>shell <span class="k">if</span> <span class="k">$(</span>QEMU<span class="k">)</span> -help <span class="p">|</span> grep -q <span class="s1">'^-gdb'</span><span class="p">;</span> <span class="se">\</span>
+   <span class="k">then</span> <span class="nb">echo</span> <span class="s2">"-gdb tcp::1234"</span><span class="p">;</span> <span class="se">\</span>
+<span class="cp">   else echo "-s -p 1234"; fi)</span>
+
+<span class="nf">debug</span><span class="o">:</span> <span class="n">kernel</span> .<span class="n">gdbinit</span>
+   <span class="k">$(</span>QEMU<span class="k">)</span> <span class="k">$(</span>QEMUOPTS<span class="k">)</span> -S <span class="k">$(</span>QEMUGDB<span class="k">)</span> <span class="p">&amp;</span>
+   sleep <span class="m">1</span>
+   <span class="k">$(</span>GDB<span class="k">)</span>
+</pre></div>
+</div>
+<p>使用 make debug 来使用 gdb 调试 qemu。程序自身执行的机制和直接 make run 一样。在解析 bootloader 的行为时可以使用 gdb 在其中添加断点来查看对应寄存器和内存的内容。gdb的具体使用方法和汇编课程上一致。不熟悉的同学可以在训练章节查看到可能用到的gdb指令的简单用法，也十分推荐同学们自学一些基础的 gdb 使用方法，掌握　gdb 对本课程帮助很大。</p>
+</div>
+<div class="section" id="log">
+<h3>LOG 支持<a class="headerlink" href="#log" title="永久链接至标题">¶</a></h3>
+<div class="highlight-makefile notranslate"><div class="highlight"><pre><span></span><span class="cp">ifeq ($(LOG), error)</span>
+<span class="nv">CFLAGS</span> <span class="o">+=</span> -D LOG_LEVEL_ERROR
+<span class="cp">else ifeq ($(LOG), warn)</span>
+<span class="nv">CFLAGS</span> <span class="o">+=</span> -D LOG_LEVEL_WARN
+<span class="cp">else ifeq ($(LOG), info)</span>
+<span class="nv">CFLAGS</span> <span class="o">+=</span> -D LOG_LEVEL_INFO
+<span class="cp">else ifeq ($(LOG), debug)</span>
+<span class="nv">CFLAGS</span> <span class="o">+=</span> -D LOG_LEVEL_DEBUG
+<span class="cp">else ifeq ($(LOG), trace)</span>
+<span class="nv">CFLAGS</span> <span class="o">+=</span> -D LOG_LEVEL_TRACE
+<span class="cp">endif</span>
+</pre></div>
+</div>
+<p>我们的 log 等级选择是通过 -D 参数来实现的，这也是大家 <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">run</span> <span class="pre">LOG=xxx</span></code> 的原理。从这里我们也可以看到 <code class="docutils literal notranslate"><span class="pre">LOG</span></code> 的可选值。</p>
+</div>
+</div>
+</div>
+
+      </article>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="3exercise.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">chapter1练习</div>
+              </div>
+              <svg><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="1app-ee-platform.html">
+              <svg><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">代码框架简述</div>
+                
+              </div>
+            </a>
+        </div>
+
+        <div class="related-information">
+              Copyright &#169; 2020, Yifan Wu
+            |
+            Built with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+              and
+              <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+              <a href="https://github.com/pradyunsg/furo">Furo theme</a>.
+            |
+            <a class="muted-link" href="../_sources/chapter1/2remove-std.rst.txt"
+               rel="nofollow">
+              显示源代码
+            </a>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            目录
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">makefile 和 qemu</a><ul>
+<li><a class="reference internal" href="#id1">本节导读</a></li>
+<li><a class="reference internal" href="#makefile">makefile 内部</a><ul>
+<li><a class="reference internal" href="#id2">指定编译使用的工具</a></li>
+<li><a class="reference internal" href="#flag">添加编译flag</a></li>
+<li><a class="reference internal" href="#id3">设置编译目标</a></li>
+<li><a class="reference internal" href="#qemu">运行 qemu</a></li>
+<li><a class="reference internal" href="#gdb">gdb 调试</a></li>
+<li><a class="reference internal" href="#log">LOG 支持</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/scripts/main.js"></script>
+    <script kind="utterances">
+
+    var commentsRunWhenDOMLoaded = cb => {
+    if (document.readyState != 'loading') {
+        cb()
+    } else if (document.addEventListener) {
+        document.addEventListener('DOMContentLoaded', cb)
+    } else {
+        document.attachEvent('onreadystatechange', function() {
+        if (document.readyState == 'complete') cb()
+        })
+    }
+}
+
+var addUtterances = () => {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://utteranc.es/client.js";
+    script.async = "async";
+
+    script.setAttribute("repo", "LearningOS/uCore-Tutorial-Guide");
+    script.setAttribute("issue-term", "pathname");
+    script.setAttribute("theme", "github-light");
+    script.setAttribute("label", "comments");
+    script.setAttribute("crossorigin", "anonymous");
+
+    sections = document.querySelectorAll("div.section");
+    if (sections !== null) {
+        section = sections[sections.length-1];
+        section.appendChild(script);
+    }
+}
+commentsRunWhenDOMLoaded(addUtterances);
+</script>
+    <script src="../_static/translations.js"></script>
+    </body>
+</html>
