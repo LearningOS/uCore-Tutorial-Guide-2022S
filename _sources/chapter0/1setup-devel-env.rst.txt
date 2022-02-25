@@ -226,7 +226,7 @@ GDB 调试支持
 
 .. code-block:: bash
 
-   git clone https://github.com/DeathWish5/uCore-Tutorial-v2.git --recursive
+   git clone https://github.com/LearningOS/uCore-Tutorial-Code-2022S.git --recursive
    cd uCore-Tutorial-v2
 
 其他的章节需要处理用户代码，我们可以先运行 ch1 分支：
