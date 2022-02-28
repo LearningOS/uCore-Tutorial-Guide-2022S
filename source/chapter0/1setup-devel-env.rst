@@ -227,9 +227,9 @@ GDB 调试支持
 .. code-block:: bash
 
    git clone https://github.com/LearningOS/uCore-Tutorial-Code-2022S.git --recursive
-   cd uCore-Tutorial-v2
+   cd uCore-Tutorial-Code-2022S
 
-其他的章节需要处理用户代码，我们可以先运行 ch1 分支：
+其他的章节需要处理用户代码，我们可以先运行不需要处理用户代码的 ch1 分支：
 
 .. code-block:: bash
 
