@@ -186,6 +186,8 @@ Qemu 模拟器安装
    另外一些 Linux 发行版编译 Qemu 的依赖包可以从 `这里 <https://risc-v-getting-started-guide.readthedocs.io/en/latest/linux-qemu.html#prerequisites>`_ 
    找到。
 
+   GCC 11 可能无法正常编译 Qemu5 ，而 GCC 9.3.0 (Ubuntu 20.04 自带) 及 GCC 10.3.0 经测试可以编译，请自行选择合适的编译器版本。
+
 之后我们可以在同目录下 ``sudo make install`` 将 Qemu 安装到 ``/usr/local/bin`` 目录下，但这样经常会引起
 冲突。个人来说更习惯的做法是，编辑 ``~/.bashrc`` 文件（如果使用的是默认的 ``bash`` 终端），在文件的末尾加入
 几行：
@@ -205,6 +207,8 @@ Qemu 模拟器安装
 
    qemu-system-riscv64 --version
    qemu-riscv64 --version
+
+注：部分同学可能在这一步遇到版本号不为5.0.0的情况，这是因为原本已经装了旧版本 qemu，这种情况下可以卸载原来的 qemu，或者将上面的三行 ``export`` 格式从 ``export PATH=$PATH:/home/xxx`` 改为 ``export PATH=/home/xxx:$PATH`` 来更改优先级。
 
 
 GDB 调试支持
