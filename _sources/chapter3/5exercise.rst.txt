@@ -17,32 +17,22 @@ ch3 中，我们的系统已经能够支持多个任务分时轮流运行，我�
 
 .. code-block:: C
 
-    int sys_task_info(unsigned int id, TaskInfo *ts);
+    int sys_task_info(TaskInfo *ti);
 
 - syscall ID: 410
-- 根据任务 ID 查询任务信息，任务信息包括任务 ID、任务控制块相关信息（任务状态）、任务使用的系统调用及调用次数、任务总运行时长。
+- 查询当前正在执行的任务信息，任务信息包括任务 ID、任务控制块相关信息（任务状态）、任务使用的系统调用次数、任务总运行时长。
 
 .. code-block:: C
 
     struct TaskInfo {
-        unsigned int id,
-        TaskStatus status,
-        SyscallInfo[MAX_SYSCALL_NUM] call,
-        int time
-    };
-
-- 系统调用信息采用数组形式对每个系统调用的次数进行统计，相关结构定义如下：
-
-.. code-block:: C
-
-    struct SyscallInfo {
-        unsigned int id,
-        unsigned int times
+        unsigned int id;
+        TaskStatus status;
+        unsigned int syscall_times[MAX_SYSCALL_NUM];
+        int time;
     };
 
 - 参数：
-    - id: 待查询任务id
-    - ts: 待查询任务信息
+    - ti: 待查询任务信息
 - 返回值：执行成功返回0，错误返回-1
 - 说明：
     - 相关结构已在框架中给出，只需添加逻辑实现功能需求即可。
