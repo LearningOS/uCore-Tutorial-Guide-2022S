@@ -66,7 +66,7 @@ C 开发环境配置
 
 .. code-block:: bash
    
-   tar xzvf riscv64-unknown-elf-gcc-10.1.0-2020.08.2-x86_64-linux-ubuntu14.tar.gz
+   tar xzf riscv64-unknown-elf-gcc-10.1.0-2020.08.2-x86_64-linux-ubuntu14.tar.gz
 
 文件名改短：
 
@@ -87,7 +87,7 @@ C 开发环境配置
    cd /usr/local
    sudo wget -O riscv64-linux-musl-cross.tgz https://cloud.tsinghua.edu.cn/f/b07bac9bcfa14f1dae66/?dl=1
 
-   sudo tar xzvf riscv64-linux-musl-cross.tgz
+   sudo tar xzf riscv64-linux-musl-cross.tgz
 
 将路径添加到PATH之中:
 
@@ -168,7 +168,7 @@ Qemu 模拟器安装
    # 提取码 8woe
    wget https://download.qemu.org/qemu-5.0.0.tar.xz
    # 解压
-   tar xvJf qemu-5.0.0.tar.xz
+   tar xJf qemu-5.0.0.tar.xz
    # 编译安装并配置 RISC-V 支持
    cd qemu-5.0.0
    ./configure --target-list=riscv64-softmmu,riscv64-linux-user
@@ -193,11 +193,10 @@ Qemu 模拟器安装
 几行：
 
 .. code-block:: bash
-
-   # 请注意，qemu-5.0.0 的父目录可以随着你的实际安装位置灵活调整
-   export PATH=$PATH:/home/shinbokuow/Downloads/built/qemu-5.0.0
-   export PATH=$PATH:/home/shinbokuow/Downloads/built/qemu-5.0.0/riscv64-softmmu
-   export PATH=$PATH:/home/shinbokuow/Downloads/built/qemu-5.0.0/riscv64-linux-user
+   # 注意 $HOME 是 Linux 自动设置的表示你家目录的环境变量，你也可以根据实际位置灵活调整
+   export PATH=$HOME/Downloads/built/qemu-5.0.0:$PATH
+   export PATH=$HOME/Downloads/built/qemu-5.0.0/riscv64-softmmu:$PATH
+   export PATH=$HOME/Downloads/built/qemu-5.0.0/riscv64-linux-user:$PATH
 
 随后即可在当前终端 ``source ~/.bashrc`` 更新系统路径，或者直接重启一个新的终端。
 
@@ -208,8 +207,11 @@ Qemu 模拟器安装
    qemu-system-riscv64 --version
    qemu-riscv64 --version
 
-注：部分同学可能在这一步遇到版本号不为5.0.0的情况，这是因为原本已经装了旧版本 qemu，这种情况下可以卸载原来的 qemu，或者将上面的三行 ``export`` 格式从 ``export PATH=$PATH:/home/xxx`` 改为 ``export PATH=/home/xxx:$PATH`` 来更改优先级。
+注：有同学在 Ubuntu 20.04 上遇到了执行 ``qemu-system-riscv64 --version`` 报错找不到 ``libtinfow.so.6``，可以通过如下软连接修复：
 
+.. code-block:: bash
+
+   sudo ln -s /lib/x86_64-linux-gnu/libtic.so.6.2 /lib/x86_64-linux-gnu/libtinfow.so.6
 
 GDB 调试支持
 ------------------------------
