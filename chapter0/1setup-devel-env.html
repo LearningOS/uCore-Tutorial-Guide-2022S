@@ -336,7 +336,7 @@ VirtualBox 安装一台 Ubuntu18.04 虚拟机并在上面进行实验。</p>
 </div>
 <p>接下来，继续安装用于交叉编译的musl-gcc,这里我们仍然使用/usr/local存放它。下面的步骤和上一步的安装是一样的：</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> /usr/local
-sudo wget https://cloud.tsinghua.edu.cn/f/b07bac9bcfa14f1dae66/?dl<span class="o">=</span><span class="m">1</span> <span class="o">&amp;&amp;</span> mv index.html<span class="se">\?</span>dl<span class="se">\=</span><span class="m">1</span> riscv64-linux-musl-cross.tgz
+sudo wget -O riscv64-linux-musl-cross.tgz https://cloud.tsinghua.edu.cn/f/b07bac9bcfa14f1dae66/?dl<span class="o">=</span><span class="m">1</span>
 
 tar xzvf riscv64-linux-musl-cross.tgz
 </pre></div>
