@@ -289,10 +289,9 @@
 </div>
 <ul class="simple">
 <li><p>syscall ID: 410</p></li>
-<li><p>查询当前正在执行的任务信息，任务信息包括任务 ID、任务控制块相关信息（任务状态）、任务使用的系统调用次数、任务总运行时长。</p></li>
+<li><p>查询当前正在执行的任务信息，任务信息包括任务控制块相关信息（任务状态）、任务使用的系统调用次数、任务总运行时长。</p></li>
 </ul>
 <div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">TaskInfo</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">TaskStatus</span><span class="w"> </span><span class="n">status</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">syscall_times</span><span class="p">[</span><span class="n">MAX_SYSCALL_NUM</span><span class="p">];</span><span class="w"></span>
 <span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">time</span><span class="p">;</span><span class="w"></span>
@@ -311,6 +310,7 @@
 <li><dl class="simple">
 <dt>说明：</dt><dd><ul>
 <li><p>相关结构已在框架中给出，只需添加逻辑实现功能需求即可。</p></li>
+<li><p>在我们的实验中，系统调用号一定小于 500，所以直接使用一个长为 <code class="docutils literal notranslate"><span class="pre">MAX_SYSCALL_NUM=500</span></code> 的数组做桶计数。</p></li>
 </ul>
 </dd>
 </dl>
@@ -320,7 +320,7 @@
 <li><p>大胆修改已有框架！除了配置文件，你几乎可以随意修改已有框架的内容。</p></li>
 <li><p>程序运行时间可以通过调用 <code class="docutils literal notranslate"><span class="pre">get_time()</span></code> 获取。</p></li>
 <li><p>系统调用次数可以考虑在进入内核态系统调用异常处理函数之后，进入具体系统调用函数之前维护。</p></li>
-<li><p>阅读 proc 的实现，思考如何维护内核控制块信息（可以在控制块可变部分加入其他需要的信息）</p></li>
+<li><p>阅读 proc 的实现，思考如何维护内核控制块信息（可以在控制块可变部分加入其他需要的信息）。</p></li>
 </ul>
 </dd>
 </dl>
