@@ -342,6 +342,7 @@ inode的操作
 其中bmap函数是连接inode和block的重要函数。但由于我们支持了间接索引，同时还设计到文件大小的改变，所以也拉出来看看:
 
 .. code-block:: c
+
     // bn = off / BSIZE
     uint bmap(struct inode *ip, uint bn) {
         uint addr, *a;
@@ -377,6 +378,7 @@ inode的操作
 balloc(位于nfs/fs.c)会分配一个新的buf缓存。而iupdate函数则是把修改之后的inode重新写回到磁盘上。不然掉电了就凉了。
 
 .. code-block:: c
+
     // Copy a modified in-memory inode to disk.
     // Must be called after every change to an ip->xxx field
     // that lives on disk.
@@ -445,6 +447,7 @@ balloc(位于nfs/fs.c)会分配一个新的buf缓存。而iupdate函数则是把
 打开文件的方式根据flags有很多种。我们先来看最简单的，就是打开已经存在的文件的方法。fileopen在处理这类打开时调用了namei这个函数。
 
 .. code-block:: c
+
     // namei = 获得根目录，然后在其中遍历查找 path
     struct inode *namei(char *path) {
     struct inode *dp = root_dir();
@@ -485,6 +488,7 @@ fileopen 还可能会导致文件 truncate，也就是截断，具体做法是�
 比较复杂的就是使用fileopen以创建的方式打开一个文件。fileopen函数调用了create这个函数。
 
 .. code-block:: c
+
     static struct inode *
     create(char *path, short type) {
         struct inode *ip, *dp;
