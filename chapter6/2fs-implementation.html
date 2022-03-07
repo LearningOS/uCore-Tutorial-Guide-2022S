@@ -580,7 +580,57 @@ kernelret:
 </pre></div>
 </div>
 <p>其中bmap函数是连接inode和block的重要函数。但由于我们支持了间接索引，同时还设计到文件大小的改变，所以也拉出来看看:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// bn = off / BSIZE</span>
+<span class="n">uint</span><span class="w"> </span><span class="nf">bmap</span><span class="p">(</span><span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="n">uint</span><span class="w"> </span><span class="n">bn</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">uint</span><span class="w"> </span><span class="n">addr</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">a</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">buf</span><span class="w"> </span><span class="o">*</span><span class="n">bp</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 如果 bn &lt; 12，属于直接索引, block num = ip-&gt;addr[bn]</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bn</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NDIRECT</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// 如果对应的 addr, 也就是　block num = 0，表明文件大小增加，需要给文件分配新的 data block</span>
+<span class="w">        </span><span class="c1">// 这是通过 balloc 实现的，具体做法是在 bitmap 中找一个空闲 block，置位后返回其编号</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">addrs</span><span class="p">[</span><span class="n">bn</span><span class="p">])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"></span>
+<span class="w">            </span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">addrs</span><span class="p">[</span><span class="n">bn</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">balloc</span><span class="p">(</span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">dev</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">addr</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="n">bn</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">NDIRECT</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 间接索引块，那么对应的数据块就是一个大　addr 数组。</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bn</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NINDIRECT</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// Load indirect block, allocating if necessary.</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">addrs</span><span class="p">[</span><span class="n">NDIRECT</span><span class="p">])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"></span>
+<span class="w">            </span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">addrs</span><span class="p">[</span><span class="n">NDIRECT</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">balloc</span><span class="p">(</span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">dev</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">bp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bread</span><span class="p">(</span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">dev</span><span class="p">,</span><span class="w"> </span><span class="n">addr</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">uint</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="n">bp</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="n">bn</span><span class="p">])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="n">a</span><span class="p">[</span><span class="n">bn</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">balloc</span><span class="p">(</span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">dev</span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="n">bwrite</span><span class="p">(</span><span class="n">bp</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">        </span><span class="n">brelse</span><span class="p">(</span><span class="n">bp</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">addr</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">panic</span><span class="p">(</span><span class="s">"bmap: out of range"</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
 <p>balloc(位于nfs/fs.c)会分配一个新的buf缓存。而iupdate函数则是把修改之后的inode重新写回到磁盘上。不然掉电了就凉了。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// Copy a modified in-memory inode to disk.</span>
+<span class="c1">// Must be called after every change to an ip-&gt;xxx field</span>
+<span class="c1">// that lives on disk.</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">iupdate</span><span class="p">(</span><span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="n">ip</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">buf</span><span class="w"> </span><span class="o">*</span><span class="n">bp</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">dinode</span><span class="w"> </span><span class="o">*</span><span class="n">dip</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">bp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bread</span><span class="p">(</span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">dev</span><span class="p">,</span><span class="w"> </span><span class="n">IBLOCK</span><span class="p">(</span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">inum</span><span class="p">,</span><span class="w"> </span><span class="n">sb</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">dip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="k">struct</span> <span class="nc">dinode</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="n">bp</span><span class="o">-&gt;</span><span class="n">data</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">inum</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">IPB</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">dip</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">dip</span><span class="o">-&gt;</span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">memmove</span><span class="p">(</span><span class="n">dip</span><span class="o">-&gt;</span><span class="n">addrs</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">addrs</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">addrs</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">bwrite</span><span class="p">(</span><span class="n">bp</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">brelse</span><span class="p">(</span><span class="n">bp</span><span class="p">);</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="id4">
 <h2>获取文件对应的inode<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
@@ -638,9 +688,102 @@ return fd;</p>
 <p>}</p>
 </div></blockquote>
 <p>打开文件的方式根据flags有很多种。我们先来看最简单的，就是打开已经存在的文件的方法。fileopen在处理这类打开时调用了namei这个函数。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// namei = 获得根目录，然后在其中遍历查找 path</span>
+<span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="n">namei</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">path</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="n">dp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">root_dir</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">dirlookup</span><span class="p">(</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">path</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="c1">// root_dir 位置固定</span>
+<span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="n">root_dir</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">inode</span><span class="o">*</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iget</span><span class="p">(</span><span class="n">ROOTDEV</span><span class="p">,</span><span class="w"> </span><span class="n">ROOTINO</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">ivalid</span><span class="p">(</span><span class="n">r</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">r</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="c1">// 便利根目录所有的 dirent，找到 name 一样的 inode。</span>
+<span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="w"></span>
+<span class="n">dirlookup</span><span class="p">(</span><span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">uint</span><span class="w"> </span><span class="o">*</span><span class="n">poff</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">uint</span><span class="w"> </span><span class="n">off</span><span class="p">,</span><span class="w"> </span><span class="n">inum</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">dirent</span><span class="w"> </span><span class="n">de</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 每次迭代处理一个 block，注意根目录可能有多个 data block</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">off</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">off</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">dp</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">;</span><span class="w"> </span><span class="n">off</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">de</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">readi</span><span class="p">(</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="n">de</span><span class="p">,</span><span class="w"> </span><span class="n">off</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">de</span><span class="p">));</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">strncmp</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">de</span><span class="p">.</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">DIRSIZ</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">poff</span><span class="p">)</span><span class="w"></span>
+<span class="w">                </span><span class="o">*</span><span class="n">poff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">off</span><span class="p">;</span><span class="w"></span>
+<span class="w">            </span><span class="n">inum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">de</span><span class="p">.</span><span class="n">inum</span><span class="p">;</span><span class="w"></span>
+<span class="w">            </span><span class="c1">// 找到之后，绑定一个内存 inode 然后返回</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">iget</span><span class="p">(</span><span class="n">dp</span><span class="o">-&gt;</span><span class="n">dev</span><span class="p">,</span><span class="w"> </span><span class="n">inum</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
 <p>由于我们是单目录结构。因此首先我们调用root_dir获取根目录对应的inode。之后就遍历这个inode索引的数据块中存储的文件信息到dirent结构体之中，比较名称和给定的文件名是否一致。dirlookup的逻辑对于我们本章的练习十分重要。</p>
 <p>fileopen 还可能会导致文件 truncate，也就是截断，具体做法是舍弃全部现有内容，释放inode所有 data block 并添加到 free bitmap 里。这也是目前 nfs 中唯一的文件变短方式。</p>
 <p>比较复杂的就是使用fileopen以创建的方式打开一个文件。fileopen函数调用了create这个函数。</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="w"></span>
+<span class="n">create</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">path</span><span class="p">,</span><span class="w"> </span><span class="kt">short</span><span class="w"> </span><span class="n">type</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">dp</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">namei</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// 已经存在，直接返回</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">ip</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 创建一个文件,首先分配一个空闲的 disk inode, 绑定内存 inode 之后返回</span>
+<span class="w">    </span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ialloc</span><span class="p">(</span><span class="n">dp</span><span class="o">-&gt;</span><span class="n">dev</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 注意 ialloc 不会执行实际读取，必须有 ivalid</span>
+<span class="w">    </span><span class="n">ivalid</span><span class="p">(</span><span class="n">ip</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// 在根目录创建一个 dirent 指向刚才创建的 inode</span>
+<span class="w">    </span><span class="n">dirlink</span><span class="p">(</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">path</span><span class="p">,</span><span class="w"> </span><span class="n">ip</span><span class="o">-&gt;</span><span class="n">inum</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// dp 不用了，iput 就是释放内存 inode，和 iget 正好相反。</span>
+<span class="w">    </span><span class="n">iput</span><span class="p">(</span><span class="n">dp</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">ip</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="c1">// nfs/fs.c</span>
+<span class="n">uint</span><span class="w"> </span><span class="n">ialloc</span><span class="p">(</span><span class="n">ushort</span><span class="w"> </span><span class="n">type</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">uint</span><span class="w"> </span><span class="n">inum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">freeinode</span><span class="o">++</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">dinode</span><span class="w"> </span><span class="n">din</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">bzero</span><span class="p">(</span><span class="o">&amp;</span><span class="n">din</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">din</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">din</span><span class="p">.</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">xshort</span><span class="p">(</span><span class="n">type</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">din</span><span class="p">.</span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">xint</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">winode</span><span class="p">(</span><span class="n">inum</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">din</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">inum</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="c1">// os/fs.c</span>
+<span class="c1">// Write a new directory entry (name, inum) into the directory dp.</span>
+<span class="kt">int</span><span class="w"></span>
+<span class="n">dirlink</span><span class="p">(</span><span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">uint</span><span class="w"> </span><span class="n">inum</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">off</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">dirent</span><span class="w"> </span><span class="n">de</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="n">ip</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// Check that name is not present.</span>
+<span class="w">    </span><span class="k">if</span><span class="p">((</span><span class="n">ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dirlookup</span><span class="p">(</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">))</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">){</span><span class="w"></span>
+<span class="w">        </span><span class="n">iput</span><span class="p">(</span><span class="n">ip</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// Look for an empty dirent.</span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="n">off</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">off</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">dp</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">;</span><span class="w"> </span><span class="n">off</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">de</span><span class="p">)){</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">readi</span><span class="p">(</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="o">&amp;</span><span class="n">de</span><span class="p">,</span><span class="w"> </span><span class="n">off</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">de</span><span class="p">))</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">de</span><span class="p">))</span><span class="w"></span>
+<span class="w">        </span><span class="n">panic</span><span class="p">(</span><span class="s">"dirlink read"</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">de</span><span class="p">.</span><span class="n">inum</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"></span>
+<span class="w">        </span><span class="k">break</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="n">strncpy</span><span class="p">(</span><span class="n">de</span><span class="p">.</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">DIRSIZ</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">de</span><span class="p">.</span><span class="n">inum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inum</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">writei</span><span class="p">(</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="o">&amp;</span><span class="n">de</span><span class="p">,</span><span class="w"> </span><span class="n">off</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">de</span><span class="p">))</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">de</span><span class="p">))</span><span class="w"></span>
+<span class="w">        </span><span class="n">panic</span><span class="p">(</span><span class="s">"dirlink"</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
 <p>ialloc 干的事情：遍历 inode blocks 找到一个空闲的inode，初始化并返回。dirlink对于本章的练习也十分重要。和dirlookup不同，我们没有现成的dirent存储在磁盘上，而是要在磁盘上创建一个新的dirent。他遍历根目录数据块，找到一个空的 dirent，设置 dirent = {inum, filename} 然后返回，注意这一步可能找不到空位，这时需要找一个新的数据块，并扩大 root_dir size，这是由　bmap 自动完成的。需要注意本章创建硬链接时对应inode num的处理。</p>
 </div>
 <div class="section" id="id13">
