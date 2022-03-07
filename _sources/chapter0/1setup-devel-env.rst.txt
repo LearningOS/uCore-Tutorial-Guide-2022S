@@ -193,6 +193,7 @@ Qemu 模拟器安装
 几行：
 
 .. code-block:: bash
+
    # 注意 $HOME 是 Linux 自动设置的表示你家目录的环境变量，你也可以根据实际位置灵活调整
    export PATH=$HOME/Downloads/built/qemu-5.0.0:$PATH
    export PATH=$HOME/Downloads/built/qemu-5.0.0/riscv64-softmmu:$PATH
