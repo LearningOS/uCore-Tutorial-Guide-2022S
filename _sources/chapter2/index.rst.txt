@@ -10,5 +10,4 @@
    1rv-privilege
    2application
    3batch-system
-   4exercise
 

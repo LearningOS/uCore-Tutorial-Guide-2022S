@@ -9,6 +9,5 @@
    0intro
    1app-ee-platform
    2remove-std
-   3exercise
 
 
