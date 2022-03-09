@@ -33,7 +33,32 @@
 实践体验
 ---------------------------
 
-本章我们引入了用户程序，我们可以通过 ``make user`` 生成用户程序，最终将 ``.bin`` 文件放在 ``user/target/bin`` 目录下。
+本章我们引入了用户程序，为了解耦内核与用户程序，我们分离了两个仓库，分别是存放内核程序的 ``uCore-Tutorial-Code-20xxx`` （下称代码仓库，最后几位 x 表示学期）与存放用户程序的 ``uCore-Tutorial-Test-20xxx`` （下称测例仓库）。 因此首先你需要进入代码仓库文件夹（如果已经执行过该步骤则不需要再重复执行）并 clone 用户程序仓库：
+
+.. code-block:: console
+
+   $ cd uCore-Tutorial-Code-2022S
+   $ git clone https://github.com/LearningOS/uCore-Tutorial-Test-2022S.git user
+
+上面的指令会将测例仓库克隆到代码仓库下并命名为 ``user`` ，注意 ``/user`` 在代码仓库的 ``.gitignore`` 中，因此不会出现 ``.git`` 文件夹嵌套的问题，并且你 ``checkout`` 代码仓库时也不会影响测例仓库的内容。
+
+.. note::
+
+   如果测例仓库有所更新或者你切换了代码仓库的分支，你可能需要清理掉测例仓库原版的编译结果，此时需要执行
+   
+   .. code-block:: console
+
+      $ make -C user clean
+
+   它的作用基本等价于如下写法，但是更简便
+
+   .. code-block:: console
+
+      $ cd user
+      $ make clean
+      $ cd ..
+
+我们可以通过 ``make user`` 生成用户程序，最终将 ``.bin`` 文件放在 ``user/target/bin`` 目录下。
 
 .. code-block:: console
 
@@ -50,12 +75,6 @@
 
    $ make test BASE=1
 
-如果你发现自己的 user 目录是空的，这是由于在 clone 的时候没有增加 ``--recursive`` 参数导致 submodule 没有初始化。解决方案如下：
-
-.. code-block:: console
-
-   $ git submodule init 
-   $ git submodule update
 
 如果顺利的话，我们可以看到批处理系统自动加载并运行所有的程序并且正确在程序出错的情况下保护了自身：
 
