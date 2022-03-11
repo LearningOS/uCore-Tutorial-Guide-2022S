@@ -78,18 +78,16 @@ ch3 中，我们的系统已经能够支持多个任务分时轮流运行，我�
 
 1. 请依次简要回答如下问题：
 
-    - 为了方便 os 处理，Ｍ 态软件会将 S 态异常/中断委托给 S 态软件，请指出有哪些寄存器记录了委托信息。
-    - RustSBI 委托了哪些异常/中断？（提示：看看 RustSBI 在启动时输出了什么？）
+   - 为了方便 os 处理，Ｍ 态软件会将 S 态异常/中断委托给 S 态软件，请指出有哪些寄存器记录了委托信息。
+   - RustSBI 委托了哪些异常/中断？（提示：看看 RustSBI 在启动时输出了什么？）
 
 2. 正确进入 U 态后，程序的特征还应有：使用 S 态特权指令，访问 S 态寄存器后会报错。请同学们可以自行测试这些内容（参考 `前三个测例 <https://github.com/LearningOS/uCore-Tutorial-Test-2022S/tree/main/src>`_ ，描述程序出错行为，同时注意注明你使用的 sbi 及其版本。
 
 3. 请学习 gdb 调试工具的使用(这对后续调试很重要)，并通过 gdb 简单跟踪从机器加电到跳转到 0x80200000 的简单过程。只需要描述重要的跳转即可，只需要描述在 qemu 上的情况。
 
-tips: 
-
-  - 事实上进入 rustsbi 之后就不需要使用 gdb 调试了。可以直接阅读代码。 `rustsbi起始代码 <https://github.com/rustsbi/rustsbi-qemu/blob/7d71bfb7b3ad8e36f06f92c2ffe2066bbb0f9254/rustsbi-qemu/src/main.rs#L56>`_ 。
-  - 可以使用示例代码 Makefile 中的 ``make debug`` 指令。
-  - 一些可能用到的 gdb 指令：
+   - 事实上进入 rustsbi 之后就不需要使用 gdb 调试了。可以直接阅读代码。 `rustsbi起始代码 <https://github.com/rustsbi/rustsbi-qemu/blob/7d71bfb7b3ad8e36f06f92c2ffe2066bbb0f9254/rustsbi-qemu/src/main.rs#L56>`_ 。
+   - 可以使用示例代码 Makefile 中的 ``make debug`` 指令。
+   - 一些可能用到的 gdb 指令：
       - ``x/10i 0x80000000`` : 显示 0x80000000 处的10条汇编指令。
       - ``x/10i $pc`` : 显示即将执行的10条汇编指令。
       - ``x/10xw 0x80000000`` : 显示 0x80000000 处的10条数据，格式为16进制32bit。
@@ -101,54 +99,53 @@ tips:
       - ``si``: 单步执行一条汇编指令。
 
 
-   
 4. 请结合用例理解 `trampoline.S <https://github.com/LearningOS/uCore-Tutorial-Code-2022S/blob/ch3/os/trampoline.S>`_ 中两个函数 `userret` 和 `uservec` 的作用，并回答如下几个问题:
 
-    1. L79: 刚进入 `userret` 时，`a0`、`a1` 分别代表了什么值。 
+   1. L79: 刚进入 `userret` 时，`a0`、`a1` 分别代表了什么值。 
 
-    2. L87-L88: `sfence` 指令有何作用？为什么要执行该指令，当前章节中，删掉该指令会导致错误吗？
+   2. L87-L88: `sfence` 指令有何作用？为什么要执行该指令，当前章节中，删掉该指令会导致错误吗？
 
-        .. code-block:: assembly
+      .. code-block:: assembly
 
-            csrw satp, a1
-            sfence.vma zero, zero
+         csrw satp, a1
+         sfence.vma zero, zero
 
-    3. L96-L125: 为何注释中说要除去 `a0`？哪一个地址代表 `a0`？现在 `a0` 的值存在何处？
+   3. L96-L125: 为何注释中说要除去 `a0`？哪一个地址代表 `a0`？现在 `a0` 的值存在何处？
 
-        .. code-block:: assembly
+      .. code-block:: assembly
 
-            # restore all but a0 from TRAPFRAME
-            ld ra, 40(a0)
-            ld sp, 48(a0)
-            ld t5, 272(a0)
-            ld t6, 280(a0)
+         # restore all but a0 from TRAPFRAME
+         ld ra, 40(a0)
+         ld sp, 48(a0)
+         ld t5, 272(a0)
+         ld t6, 280(a0)
 
-    4. `userret`：中发生状态切换在哪一条指令？为何执行之后会进入用户态？
+   4. `userret`：中发生状态切换在哪一条指令？为何执行之后会进入用户态？
 
-    5. L29： 执行之后，a0 和 sscratch 中各是什么值，为什么？
+   5. L29： 执行之后，a0 和 sscratch 中各是什么值，为什么？
 
-        .. code-block:: assembly
+      .. code-block:: assembly
 
-            csrrw a0, sscratch, a0     
+         csrrw a0, sscratch, a0     
 
-    6. L32-L61: 从 trapframe 第几项开始保存？为什么？是否从该项开始保存了所有的值，如果不是，为什么？
+   6. L32-L61: 从 trapframe 第几项开始保存？为什么？是否从该项开始保存了所有的值，如果不是，为什么？
         
-        .. code-block:: assembly
+      .. code-block:: assembly
 
-            sd ra, 40(a0)
-            sd sp, 48(a0)
-            ...
-            sd t5, 272(a0)
-            sd t6, 280(a0)
+         sd ra, 40(a0)
+         sd sp, 48(a0)
+         ...
+         sd t5, 272(a0)
+         sd t6, 280(a0)
 
-    7. 进入 S 态是哪一条指令发生的？
+   7. 进入 S 态是哪一条指令发生的？
 
-    8.  L75-L76: `ld t0, 16(a0)` 执行之后，`t0`中的值是什么，解释该值的由来？
+   8.  L75-L76: `ld t0, 16(a0)` 执行之后，`t0`中的值是什么，解释该值的由来？
         
-        .. code-block:: assembly
+      .. code-block:: assembly
 
-            ld t0, 16(a0)
-            jr t0
+         ld t0, 16(a0)
+         jr t0
 
 
 .. ch3报告要求::
