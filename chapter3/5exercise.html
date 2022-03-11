@@ -353,34 +353,7 @@
 <div class="section" id="id4">
 <h2>问答作业<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
 <ol class="arabic">
-<li><p>请依次简要回答如下问题：</p>
-<ul class="simple">
-<li><p>为了方便 os 处理，Ｍ 态软件会将 S 态异常/中断委托给 S 态软件，请指出有哪些寄存器记录了委托信息。</p></li>
-<li><p>RustSBI 委托了哪些异常/中断？（提示：看看 RustSBI 在启动时输出了什么？）</p></li>
-</ul>
-</li>
 <li><p>正确进入 U 态后，程序的特征还应有：使用 S 态特权指令，访问 S 态寄存器后会报错。请同学们可以自行测试这些内容（参考 <a class="reference external" href="https://github.com/LearningOS/uCore-Tutorial-Test-2022S/tree/main/src">前三个测例</a> ，描述程序出错行为，同时注意注明你使用的 sbi 及其版本。</p></li>
-<li><p>请学习 gdb 调试工具的使用(这对后续调试很重要)，并通过 gdb 简单跟踪从机器加电到跳转到 0x80200000 的简单过程。只需要描述重要的跳转即可，只需要描述在 qemu 上的情况。</p>
-<ul class="simple">
-<li><p>事实上进入 rustsbi 之后就不需要使用 gdb 调试了。可以直接阅读代码。 <a class="reference external" href="https://github.com/rustsbi/rustsbi-qemu/blob/7d71bfb7b3ad8e36f06f92c2ffe2066bbb0f9254/rustsbi-qemu/src/main.rs#L56">rustsbi起始代码</a> 。</p></li>
-<li><p>可以使用示例代码 Makefile 中的 <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">debug</span></code> 指令。</p></li>
-<li><dl class="simple">
-<dt>一些可能用到的 gdb 指令：</dt><dd><ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">x/10i</span> <span class="pre">0x80000000</span></code> : 显示 0x80000000 处的10条汇编指令。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">x/10i</span> <span class="pre">$pc</span></code> : 显示即将执行的10条汇编指令。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">x/10xw</span> <span class="pre">0x80000000</span></code> : 显示 0x80000000 处的10条数据，格式为16进制32bit。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">info</span> <span class="pre">register</span></code>: 显示当前所有寄存器信息。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">info</span> <span class="pre">r</span> <span class="pre">t0</span></code>: 显示 t0 寄存器的值。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">break</span> <span class="pre">funcname</span></code>: 在目标函数第一条指令处设置断点。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">break</span> <span class="pre">*0x80200000</span></code>: 在 0x80200000 出设置断点。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">continue</span></code>: 执行直到碰到断点。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">si</span></code>: 单步执行一条汇编指令。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-</ul>
-</li>
 <li><p>请结合用例理解 <a class="reference external" href="https://github.com/LearningOS/uCore-Tutorial-Code-2022S/blob/ch3/os/trampoline.S">trampoline.S</a> 中两个函数 <cite>userret</cite> 和 <cite>uservec</cite> 的作用，并回答如下几个问题:</p>
 <ol class="arabic">
 <li><p>L79: 刚进入 <cite>userret</cite> 时，<cite>a0</cite>、<cite>a1</cite> 分别代表了什么值。</p></li>

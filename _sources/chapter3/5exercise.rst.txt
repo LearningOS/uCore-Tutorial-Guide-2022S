@@ -76,30 +76,9 @@ ch3 中，我们的系统已经能够支持多个任务分时轮流运行，我�
 问答作业
 --------------------------------------------
 
-1. 请依次简要回答如下问题：
+1. 正确进入 U 态后，程序的特征还应有：使用 S 态特权指令，访问 S 态寄存器后会报错。请同学们可以自行测试这些内容（参考 `前三个测例 <https://github.com/LearningOS/uCore-Tutorial-Test-2022S/tree/main/src>`_ ，描述程序出错行为，同时注意注明你使用的 sbi 及其版本。
 
-   - 为了方便 os 处理，Ｍ 态软件会将 S 态异常/中断委托给 S 态软件，请指出有哪些寄存器记录了委托信息。
-   - RustSBI 委托了哪些异常/中断？（提示：看看 RustSBI 在启动时输出了什么？）
-
-2. 正确进入 U 态后，程序的特征还应有：使用 S 态特权指令，访问 S 态寄存器后会报错。请同学们可以自行测试这些内容（参考 `前三个测例 <https://github.com/LearningOS/uCore-Tutorial-Test-2022S/tree/main/src>`_ ，描述程序出错行为，同时注意注明你使用的 sbi 及其版本。
-
-3. 请学习 gdb 调试工具的使用(这对后续调试很重要)，并通过 gdb 简单跟踪从机器加电到跳转到 0x80200000 的简单过程。只需要描述重要的跳转即可，只需要描述在 qemu 上的情况。
-
-   - 事实上进入 rustsbi 之后就不需要使用 gdb 调试了。可以直接阅读代码。 `rustsbi起始代码 <https://github.com/rustsbi/rustsbi-qemu/blob/7d71bfb7b3ad8e36f06f92c2ffe2066bbb0f9254/rustsbi-qemu/src/main.rs#L56>`_ 。
-   - 可以使用示例代码 Makefile 中的 ``make debug`` 指令。
-   - 一些可能用到的 gdb 指令：
-      - ``x/10i 0x80000000`` : 显示 0x80000000 处的10条汇编指令。
-      - ``x/10i $pc`` : 显示即将执行的10条汇编指令。
-      - ``x/10xw 0x80000000`` : 显示 0x80000000 处的10条数据，格式为16进制32bit。
-      - ``info register``: 显示当前所有寄存器信息。
-      - ``info r t0``: 显示 t0 寄存器的值。
-      - ``break funcname``: 在目标函数第一条指令处设置断点。
-      - ``break *0x80200000``: 在 0x80200000 出设置断点。
-      - ``continue``: 执行直到碰到断点。
-      - ``si``: 单步执行一条汇编指令。
-
-
-4. 请结合用例理解 `trampoline.S <https://github.com/LearningOS/uCore-Tutorial-Code-2022S/blob/ch3/os/trampoline.S>`_ 中两个函数 `userret` 和 `uservec` 的作用，并回答如下几个问题:
+2. 请结合用例理解 `trampoline.S <https://github.com/LearningOS/uCore-Tutorial-Code-2022S/blob/ch3/os/trampoline.S>`_ 中两个函数 `userret` 和 `uservec` 的作用，并回答如下几个问题:
 
    1. L79: 刚进入 `userret` 时，`a0`、`a1` 分别代表了什么值。 
 
