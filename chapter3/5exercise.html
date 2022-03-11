@@ -354,19 +354,14 @@
 <h2>问答作业<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
 <ol class="arabic">
 <li><p>请依次简要回答如下问题：</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li><p>为了方便 os 处理，Ｍ 态软件会将 S 态异常/中断委托给 S 态软件，请指出有哪些寄存器记录了委托信息。</p></li>
 <li><p>RustSBI 委托了哪些异常/中断？（提示：看看 RustSBI 在启动时输出了什么？）</p></li>
 </ul>
-</div></blockquote>
 </li>
 <li><p>正确进入 U 态后，程序的特征还应有：使用 S 态特权指令，访问 S 态寄存器后会报错。请同学们可以自行测试这些内容（参考 <a class="reference external" href="https://github.com/LearningOS/uCore-Tutorial-Test-2022S/tree/main/src">前三个测例</a> ，描述程序出错行为，同时注意注明你使用的 sbi 及其版本。</p></li>
-<li><p>请学习 gdb 调试工具的使用(这对后续调试很重要)，并通过 gdb 简单跟踪从机器加电到跳转到 0x80200000 的简单过程。只需要描述重要的跳转即可，只需要描述在 qemu 上的情况。</p></li>
-</ol>
-<p>tips:</p>
-<blockquote>
-<div><ul class="simple">
+<li><p>请学习 gdb 调试工具的使用(这对后续调试很重要)，并通过 gdb 简单跟踪从机器加电到跳转到 0x80200000 的简单过程。只需要描述重要的跳转即可，只需要描述在 qemu 上的情况。</p>
+<ul class="simple">
 <li><p>事实上进入 rustsbi 之后就不需要使用 gdb 调试了。可以直接阅读代码。 <a class="reference external" href="https://github.com/rustsbi/rustsbi-qemu/blob/7d71bfb7b3ad8e36f06f92c2ffe2066bbb0f9254/rustsbi-qemu/src/main.rs#L56">rustsbi起始代码</a> 。</p></li>
 <li><p>可以使用示例代码 Makefile 中的 <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">debug</span></code> 指令。</p></li>
 <li><dl class="simple">
@@ -385,58 +380,48 @@
 </dl>
 </li>
 </ul>
-</div></blockquote>
-<ol class="arabic" start="4">
+</li>
 <li><p>请结合用例理解 <a class="reference external" href="https://github.com/LearningOS/uCore-Tutorial-Code-2022S/blob/ch3/os/trampoline.S">trampoline.S</a> 中两个函数 <cite>userret</cite> 和 <cite>uservec</cite> 的作用，并回答如下几个问题:</p>
-<blockquote>
-<div><ol class="arabic">
+<ol class="arabic">
 <li><p>L79: 刚进入 <cite>userret</cite> 时，<cite>a0</cite>、<cite>a1</cite> 分别代表了什么值。</p></li>
 <li><p>L87-L88: <cite>sfence</cite> 指令有何作用？为什么要执行该指令，当前章节中，删掉该指令会导致错误吗？</p>
-<blockquote>
-<div><div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>csrw satp, a1
+<div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>csrw satp, a1
 sfence.vma zero, zero
 </pre></div>
 </div>
-</div></blockquote>
 </li>
 <li><p>L96-L125: 为何注释中说要除去 <cite>a0</cite>？哪一个地址代表 <cite>a0</cite>？现在 <cite>a0</cite> 的值存在何处？</p>
-<blockquote>
-<div><div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span># restore all but a0 from TRAPFRAME
+<div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span># restore all but a0 from TRAPFRAME
 ld ra, 40(a0)
 ld sp, 48(a0)
 ld t5, 272(a0)
 ld t6, 280(a0)
 </pre></div>
 </div>
-</div></blockquote>
 </li>
 <li><p><cite>userret</cite>：中发生状态切换在哪一条指令？为何执行之后会进入用户态？</p></li>
 <li><p>L29： 执行之后，a0 和 sscratch 中各是什么值，为什么？</p>
-<blockquote>
-<div><div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>csrrw a0, sscratch, a0
+<div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>csrrw a0, sscratch, a0
 </pre></div>
 </div>
-</div></blockquote>
 </li>
 <li><p>L32-L61: 从 trapframe 第几项开始保存？为什么？是否从该项开始保存了所有的值，如果不是，为什么？</p>
-<blockquote>
-<div><div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>sd ra, 40(a0)
+<div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>sd ra, 40(a0)
 sd sp, 48(a0)
 ...
 sd t5, 272(a0)
 sd t6, 280(a0)
 </pre></div>
 </div>
-</div></blockquote>
 </li>
 <li><p>进入 S 态是哪一条指令发生的？</p></li>
-<li><p>L75-L76: <cite>ld t0, 16(a0)</cite> 执行之后，<a href="#id6"><span class="problematic" id="id7">`</span></a>t0`中的值是什么，解释该值的由来？</p>
-<div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>ld t0, 16(a0)
+<li><p>L75-L76: <cite>ld t0, 16(a0)</cite> 执行之后，<a href="#id6"><span class="problematic" id="id7">`</span></a>t0`中的值是什么，解释该值的由来？</p></li>
+</ol>
+<blockquote>
+<div><div class="highlight-assembly notranslate"><div class="highlight"><pre><span></span>ld t0, 16(a0)
 jr t0
 </pre></div>
 </div>
-</li>
-</ol>
 </div></blockquote>
 </li>
 </ol>
