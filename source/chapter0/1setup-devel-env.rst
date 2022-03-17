@@ -66,13 +66,13 @@ C 开发环境配置
 
 .. code-block:: bash
    
-   tar xzf riscv64-unknown-elf-gcc-10.1.0-2020.08.2-x86_64-linux-ubuntu14.tar.gz
+   sudo tar xzf riscv64-unknown-elf-gcc-10.1.0-2020.08.2-x86_64-linux-ubuntu14.tar.gz
 
 文件名改短：
 
 .. code-block:: bash 
 
-   mv riscv64-unknown-elf-gcc-10.1.0-2020.08.2-x86_64-linux-ubuntu14 riscv64-unknown-elf-gcc
+   sudo mv riscv64-unknown-elf-gcc-10.1.0-2020.08.2-x86_64-linux-ubuntu14 riscv64-unknown-elf-gcc
 
 这里就算安装完成了。接下来我们要把gcc的二进制文件路径添加到PATH之中，这样我们才能在任意目录直接运行它。将以下指令添加到home下的.bashrc之中可以一劳永逸地添加(如果你使用的是自己的路径请更换路径的前缀/usr/local到你自己的路径)：
 
@@ -195,9 +195,9 @@ Qemu 模拟器安装
 .. code-block:: bash
 
    # 注意 $HOME 是 Linux 自动设置的表示你家目录的环境变量，你也可以根据实际位置灵活调整
-   export PATH=$HOME/Downloads/built/qemu-5.0.0:$PATH
-   export PATH=$HOME/Downloads/built/qemu-5.0.0/riscv64-softmmu:$PATH
-   export PATH=$HOME/Downloads/built/qemu-5.0.0/riscv64-linux-user:$PATH
+   export "PATH=$HOME/Downloads/built/qemu-5.0.0:$PATH"
+   export "PATH=$HOME/Downloads/built/qemu-5.0.0/riscv64-softmmu:$PATH"
+   export "PATH=$HOME/Downloads/built/qemu-5.0.0/riscv64-linux-user:$PATH"
 
 随后即可在当前终端 ``source ~/.bashrc`` 更新系统路径，或者直接重启一个新的终端。
 
