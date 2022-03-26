@@ -428,9 +428,9 @@ make -j<span class="k">$(</span>nproc<span class="k">)</span>
 冲突。个人来说更习惯的做法是，编辑 <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code> 文件（如果使用的是默认的 <code class="docutils literal notranslate"><span class="pre">bash</span></code> 终端），在文件的末尾加入
 几行：</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 注意 $HOME 是 Linux 自动设置的表示你家目录的环境变量，你也可以根据实际位置灵活调整</span>
-<span class="nb">export</span> <span class="s2">"PATH=</span><span class="nv">$HOME</span><span class="s2">/Downloads/built/qemu-5.0.0:</span><span class="nv">$PATH</span><span class="s2">"</span>
-<span class="nb">export</span> <span class="s2">"PATH=</span><span class="nv">$HOME</span><span class="s2">/Downloads/built/qemu-5.0.0/riscv64-softmmu:</span><span class="nv">$PATH</span><span class="s2">"</span>
-<span class="nb">export</span> <span class="s2">"PATH=</span><span class="nv">$HOME</span><span class="s2">/Downloads/built/qemu-5.0.0/riscv64-linux-user:</span><span class="nv">$PATH</span><span class="s2">"</span>
+<span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/Downloads/built/qemu-5.0.0:</span><span class="nv">$PATH</span><span class="s2">"</span>
+<span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/Downloads/built/qemu-5.0.0/riscv64-softmmu:</span><span class="nv">$PATH</span><span class="s2">"</span>
+<span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/Downloads/built/qemu-5.0.0/riscv64-linux-user:</span><span class="nv">$PATH</span><span class="s2">"</span>
 </pre></div>
 </div>
 <p>随后即可在当前终端 <code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">~/.bashrc</span></code> 更新系统路径，或者直接重启一个新的终端。</p>
