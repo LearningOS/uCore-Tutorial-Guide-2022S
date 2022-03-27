@@ -271,4 +271,4 @@ mappages的perm是用于控制页表项的flags的。请注意它具体指向哪
     #define TRAMPOLINE (USER_TOP - PGSIZE)
     #define TRAPFRAME (TRAMPOLINE - PGSIZE)
 
-这与为何要这么设定，留给读者思考。
+至于为何要这么设定，留给读者思考。
