@@ -193,7 +193,7 @@ mappages的perm是用于控制页表项的flags的。请注意它具体指向哪
     void kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
     {
         if (mappages(kpgtbl, va, sz, pa, perm) != 0)
-        panic("kvmmap");
+            panic("kvmmap");
     }
 
 用户页表的加载
