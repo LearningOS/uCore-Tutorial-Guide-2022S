@@ -266,7 +266,8 @@
 <h1>内核与应用的地址空间<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h1>
 <div class="section" id="id2">
 <h2>本节导读<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
-<p>页表 <code class="docutils literal notranslate"><span class="pre">PageTable</span></code> 只能以页为单位帮助我们维护一个虚拟内存到物理内存的地址转换关系，它本身对于计算机系统的整个虚拟/物理内存空间并没有一个全局的描述和掌控。操作系统通过不同页表的管理，来完成对不同应用和操作系统自身所在的虚拟内存，以及虚拟内存与物理内存映射关系的全面管理。这种管理是建立在地址空间的抽象上的。本节
+<p>本章和下一章节的内容和ucore没什么关系，但在rcore之中有用到、感兴趣的同学可以继续阅读。
+页表 <code class="docutils literal notranslate"><span class="pre">PageTable</span></code> 只能以页为单位帮助我们维护一个虚拟内存到物理内存的地址转换关系，它本身对于计算机系统的整个虚拟/物理内存空间并没有一个全局的描述和掌控。操作系统通过不同页表的管理，来完成对不同应用和操作系统自身所在的虚拟内存，以及虚拟内存与物理内存映射关系的全面管理。这种管理是建立在地址空间的抽象上的。本节
 我们就在内核中通过基于页表的各种数据结构实现地址空间的抽象，并介绍内核和应用的虚拟和物理地址空间中各需要包含哪些内容。</p>
 </div>
 <div class="section" id="id3">

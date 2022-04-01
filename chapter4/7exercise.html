@@ -279,11 +279,10 @@
 </div>
 <div class="section" id="id2">
 <h2>编程作业<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
-<div class="section" id="sys-gettimeofday">
-<h3>重新实现 sys_gettimeofday<a class="headerlink" href="#sys-gettimeofday" title="永久链接至标题">¶</a></h3>
-<p>引入虚存机制后，原来内核的 sys_gettimeofday 函数实现就无效了。请你重写这个函数，恢复其正常功能。</p>
-<p>代码中已经为你预留了函数，你需要填写 <code class="docutils literal notranslate"><span class="pre">YOUR</span> <span class="pre">CODE</span></code> 部分的代码。</p>
-<p>完成后你应该能够正确执行 ch3b_sleep* 对应的测例。通过 <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">test</span> <span class="pre">CHAPTER=4_3</span> <span class="pre">BASE=1</span></code> 来测试你的实现。</p>
+<div class="section" id="sys-gettimeofday-taskinfo">
+<h3>重新实现 sys_gettimeofday以及 taskinfo<a class="headerlink" href="#sys-gettimeofday-taskinfo" title="永久链接至标题">¶</a></h3>
+<p>引入虚存机制后，原来内核的 sys_gettimeofday 以及对应的获取 taskinfo 信息的函数实现就无效了。请你重写这个函数，恢复其正常功能。</p>
+<p>完成后你应该能够正确执行 ch3b_sleep* 以及 ch3_taskinfo 对应的测例。通过 <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">test</span> <span class="pre">CHAPTER=4_3</span> <span class="pre">BASE=1</span></code> 来测试你的实现。</p>
 <p>tips:</p>
 <ul class="simple">
 <li><p>抄框架其他传指针的 syscall 实现。</p></li>
@@ -473,7 +472,7 @@
 <li><a class="reference internal" href="#">chapter4练习</a><ul>
 <li><a class="reference internal" href="#id1">本章任务</a></li>
 <li><a class="reference internal" href="#id2">编程作业</a><ul>
-<li><a class="reference internal" href="#sys-gettimeofday">重新实现 sys_gettimeofday</a></li>
+<li><a class="reference internal" href="#sys-gettimeofday-taskinfo">重新实现 sys_gettimeofday以及 taskinfo</a></li>
 <li><a class="reference internal" href="#mmap">mmap 匿名映射</a></li>
 </ul>
 </li>
