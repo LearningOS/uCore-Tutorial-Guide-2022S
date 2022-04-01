@@ -16,14 +16,12 @@ chapter4练习
 编程作业
 ---------------------------------------------
 
-重新实现 sys_gettimeofday
+重新实现 sys_gettimeofday以及 taskinfo
 ++++++++++++++++++++++++++++++++++++++++++++
 
-引入虚存机制后，原来内核的 sys_gettimeofday 函数实现就无效了。请你重写这个函数，恢复其正常功能。
+引入虚存机制后，原来内核的 sys_gettimeofday 以及对应的获取 taskinfo 信息的函数实现就无效了。请你重写这个函数，恢复其正常功能。
 
-代码中已经为你预留了函数，你需要填写 ``YOUR CODE`` 部分的代码。
-
-完成后你应该能够正确执行 ch3b_sleep* 对应的测例。通过 ``make test CHAPTER=4_3 BASE=1`` 来测试你的实现。
+完成后你应该能够正确执行 ch3b_sleep* 以及 ch3_taskinfo 对应的测例。通过 ``make test CHAPTER=4_3 BASE=1`` 来测试你的实现。
 
 tips:
 
