@@ -298,8 +298,15 @@
 </ul>
 <p>如果能解决上述问题，我们就能设计实现具有超强防护能力的侏罗纪“头甲龙”操作系统。并可更好地理解地址空间，虚拟地址等操作系统的抽象概念与操作系统的虚存具体实现之间的联系。</p>
 </div>
-<div class="section" id="id3">
-<h2>实践体验<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h2>
+<div class="section" id="github">
+<h2>github多仓库使用讲解<a class="headerlink" href="#github" title="永久链接至标题">¶</a></h2>
+<p>针对有多个源的情况，可以使用git remote add <strong>origin</strong> url把另外一个远程仓库设置位remote。这里的url是对应远程仓库的链接。</p>
+<p>使用git remote -v 可以查看本地已经关联的仓库。使用 git remote rm <strong>origin</strong> 可以删除远程库。</p>
+<p>注意，<a href="#id3"><span class="problematic" id="id4">**</span></a>origin**是我们给一个远程仓库设置的别名，因此这个是可以任取的而不是一定要使用默认的这个origin。建议大家给不同的远程仓库起不同的名字便于在push,pull等操作之中区分对应的仓库。</p>
+<p>之后，对于git push, git fetch，git pull等命令之中大家常用的origin，就需要按需求改为对应的远程仓库别名。我们的实验在github和gitlab之上都有仓库。如果大家有去拉github仓库的需求，可以参考如上设置github新的远程仓库。</p>
+</div>
+<div class="section" id="id5">
+<h2>实践体验<a class="headerlink" href="#id5" title="永久链接至标题">¶</a></h2>
 <p>本章的应用和上一章相同，只不过由于内核提供给应用的访存接口被替换，应用的构建方式发生了变化，这方面在下面会深入介绍。
 因此应用运行起来的效果与上一章是一致的。</p>
 <p>获取本章代码：</p>
@@ -311,8 +318,8 @@
 </pre></div>
 </div>
 </div>
-<div class="section" id="id4">
-<h2>本章代码树<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
+<div class="section" id="id6">
+<h2>本章代码树<a class="headerlink" href="#id6" title="永久链接至标题">¶</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>:linenos:
 :emphasize-lines: <span class="m">56</span>
 
@@ -365,8 +372,8 @@
 </pre></div>
 </div>
 </div>
-<div class="section" id="id5">
-<h2>本章代码导读<a class="headerlink" href="#id5" title="永久链接至标题">¶</a></h2>
+<div class="section" id="id7">
+<h2>本章代码导读<a class="headerlink" href="#id7" title="永久链接至标题">¶</a></h2>
 <p>本章涉及的代码量相对多了起来。新增的代码主要是集中在页表的处理上的。由于课程整改，春季学期的同学们可能还没有上过计组，对页表的内容还不太熟悉。因此本章的内容可能需要同学们多多回顾OS课上对页表的讲解。同时本章也会介绍我们OS的Riscv-64指令集是如何设计页表，以及页表读取和修改的方式。</p>
 </div>
 </div>
@@ -427,9 +434,10 @@
             <ul>
 <li><a class="reference internal" href="#">引言</a><ul>
 <li><a class="reference internal" href="#id2">本章导读</a></li>
-<li><a class="reference internal" href="#id3">实践体验</a></li>
-<li><a class="reference internal" href="#id4">本章代码树</a></li>
-<li><a class="reference internal" href="#id5">本章代码导读</a></li>
+<li><a class="reference internal" href="#github">github多仓库使用讲解</a></li>
+<li><a class="reference internal" href="#id5">实践体验</a></li>
+<li><a class="reference internal" href="#id6">本章代码树</a></li>
+<li><a class="reference internal" href="#id7">本章代码导读</a></li>
 </ul>
 </li>
 </ul>
