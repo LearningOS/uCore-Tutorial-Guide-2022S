@@ -49,16 +49,36 @@
 ..
   chyyuu：在哪里讲解虚存的设计与实现？？？
 
-github多仓库使用讲解
+github 多仓库使用讲解
 -----------------------
 
-针对有多个源的情况，可以使用git remote add **origin** url把另外一个远程仓库设置位remote。这里的url是对应远程仓库的链接。
+针对有多个源的情况，可以使用 ``git remote add origin url`` 把另外一个远程仓库设置为 remote 。这里的 url 是对应远程仓库的链接。
 
-使用git remote -v 可以查看本地已经关联的仓库。使用 git remote rm **origin** 可以删除远程库。
+使用 ``git remote -v`` 可以查看本地已经关联的仓库。使用 ``git remote rm origin`` 可以删除远程库。
 
-注意，**origin**是我们给一个远程仓库设置的别名，因此这个是可以任取的而不是一定要使用默认的这个origin。建议大家给不同的远程仓库起不同的名字便于在push,pull等操作之中区分对应的仓库。
+注意， **origin** 是我们给一个远程仓库设置的别名，因此这个是可以任取的，而不是一定要使用默认的这个 origin。
+建议大家给不同的远程仓库起不同的名字便于在 push, pull 等操作之中区分对应的仓库。
 
-之后，对于git push, git fetch，git pull等命令之中大家常用的origin，就需要按需求改为对应的远程仓库别名。我们的实验在github和gitlab之上都有仓库。如果大家有去拉github仓库的需求，可以参考如上设置github新的远程仓库。
+之后，对于 git push, git fetch，git pull 等命令之中大家常用的 origin，就需要按需求改为对应的远程仓库别名。
+我们的实验在 github 和 gitlab 之上都有仓库。如果大家有去拉 github 仓库的需求，可以参考如上设置 github 新的远程仓库。
+
+.. code-block:: console
+
+   $ cd uCore-Tutorial-Code-2022S
+   # 你可以将 upstream 改为你喜欢的名字
+   $ git remote add upstream https://github.com/LearningOS/uCore-Tutorial-Code-2022S.git
+   # 更新仓库信息
+   $ git fetch upstream
+   # 查看已添加的远程仓库；应该能看到已有一个 origin 和新添加的 upstream 仓库
+   $ git remote -v
+   # 根据需求选择以下一种操作即可
+   # 在本地新建一个与远程仓库对应的分支：
+   $ git checkout -b ch4 upstream/ch4
+   # 本地已有分支，从远程仓库更新：
+   $ git checkout ch4
+   $ git merge upstream/ch4
+   # 将更新推送到自己的远程仓库
+   $ git push origin ch4
 
 实践体验
 -----------------------
