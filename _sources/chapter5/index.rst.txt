@@ -2,10 +2,11 @@
 ==============================================
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 5
 
    0intro
    1process
    2core-data-structures
-   3exercise
+   3shell-and-binloader
+   4exercise
    

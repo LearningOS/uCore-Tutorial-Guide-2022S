@@ -2,10 +2,10 @@
 <html class="no-js" lang="zh_CN">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="chapter5练习" href="3exercise.html" /><link rel="prev" title="进程的重要系统调用" href="1process.html" />
+    <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="shell与测例的加载" href="3shell-and-binloader.html" /><link rel="prev" title="与进程有关的重要系统调用" href="1process.html" />
 
     <meta name="generator" content="sphinx-4.1.2, furo 2021.08.31"/>
-        <title>shell与测例的加载 - uCore-Tutorial-Guide-2022S 0.1 文档</title>
+        <title>进程管理的核心数据结构 - uCore-Tutorial-Guide-2022S 0.1 文档</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=c7c65a82b42f6b978e58466c1e9ef2509836d916" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=16fb25fabf47304eee183a5e9af80b1ba98259b1" />
@@ -205,9 +205,10 @@
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">第五章：进程及进程管理</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="0intro.html">引言</a></li>
-<li class="toctree-l2"><a class="reference internal" href="1process.html">进程的重要系统调用</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">shell与测例的加载</a></li>
-<li class="toctree-l2"><a class="reference internal" href="3exercise.html">chapter5练习</a></li>
+<li class="toctree-l2"><a class="reference internal" href="1process.html">与进程有关的重要系统调用</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">进程管理的核心数据结构</a></li>
+<li class="toctree-l2"><a class="reference internal" href="3shell-and-binloader.html">shell与测例的加载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="4exercise.html">chapter5练习</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../chapter6/index.html">第六章：文件系统与I/O重定向</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -262,179 +263,66 @@
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
-        <div class="section" id="shell">
-<h1>shell与测例的加载<a class="headerlink" href="#shell" title="永久链接至标题">¶</a></h1>
-<div class="section" id="id1">
-<h2>本节导读<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
-<p>本节将会展示新的bin_loader加载测例到进程的方式，并且展示我们的shell测例是如何运行的。</p>
-</div>
-<div class="section" id="bin-loader">
-<h2>新的bin_loader<a class="headerlink" href="#bin-loader" title="永久链接至标题">¶</a></h2>
-<p>exec会调用bin_loader,将对应文件名的测例加载到指定的进程p之中。请结合注释理解 bin_loader 的变化：</p>
-<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kt">int</span><span class="w"> </span><span class="nf">bin_loader</span><span class="p">(</span><span class="n">uint64</span><span class="w"> </span><span class="n">start</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">end</span><span class="p">,</span><span class="w"> </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">)</span><span class="w"></span>
-<span class="linenos"> 2</span><span class="p">{</span><span class="w"></span>
-<span class="linenos"> 3</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">page</span><span class="p">;</span><span class="w"></span>
-<span class="linenos"> 4</span><span class="w">    </span><span class="c1">// 注意现在我们不要求对其了，代码的核心逻辑还是把 [start, end)</span>
-<span class="linenos"> 5</span><span class="w">    </span><span class="c1">// 映射到虚拟内存的 [BASE_ADDRESS, BASE_ADDRESS + length)</span>
-<span class="linenos"> 6</span><span class="w">    </span><span class="n">uint64</span><span class="w"> </span><span class="n">pa_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PGROUNDDOWN</span><span class="p">(</span><span class="n">start</span><span class="p">);</span><span class="w"></span>
-<span class="linenos"> 7</span><span class="w">    </span><span class="n">uint64</span><span class="w"> </span><span class="n">pa_end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PGROUNDUP</span><span class="p">(</span><span class="n">end</span><span class="p">);</span><span class="w"></span>
-<span class="linenos"> 8</span><span class="w">    </span><span class="n">uint64</span><span class="w"> </span><span class="n">length</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pa_end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pa_start</span><span class="p">;</span><span class="w"></span>
-<span class="linenos"> 9</span><span class="w">    </span><span class="n">uint64</span><span class="w"> </span><span class="n">va_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BASE_ADDRESS</span><span class="p">;</span><span class="w"></span>
-<span class="linenos">10</span><span class="w">    </span><span class="n">uint64</span><span class="w"> </span><span class="n">va_end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BASE_ADDRESS</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">length</span><span class="p">;</span><span class="w"></span>
-<span class="linenos">11</span><span class="w">    </span><span class="c1">// 不再一次 map 很多页面，而是逐页 map，为什么？</span>
-<span class="linenos">12</span><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="w"> </span><span class="n">va</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">va_start</span><span class="p">,</span><span class="w"> </span><span class="n">pa</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pa_start</span><span class="p">;</span><span class="w"> </span><span class="n">pa</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">pa_end</span><span class="p">;</span><span class="w"></span>
-<span class="linenos">13</span><span class="w">        </span><span class="n">va</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">,</span><span class="w"> </span><span class="n">pa</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">14</span><span class="w">        </span><span class="c1">// 这里我们不会直接映射，而是新分配一个页面，然后使用 memmove 进行拷贝</span>
-<span class="linenos">15</span><span class="w">        </span><span class="c1">// 这样就不会有对其的问题了，但为何这么做其实有更深层的原因。</span>
-<span class="linenos">16</span><span class="w">        </span><span class="n">page</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kalloc</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">17</span><span class="w">        </span><span class="n">memmove</span><span class="p">(</span><span class="n">page</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">pa</span><span class="p">,</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">18</span><span class="w">        </span><span class="c1">// 这个 if 就是为了防止 start end 不对其导致拷贝了多余的内核数据</span>
-<span class="linenos">19</span><span class="w">        </span><span class="c1">// 我们需要手动把它们清空</span>
-<span class="linenos">20</span><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pa</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">start</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">21</span><span class="w">            </span><span class="n">memset</span><span class="p">(</span><span class="n">page</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">va</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">22</span><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pa</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">PAGE_SIZE</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">end</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">23</span><span class="w">            </span><span class="n">memset</span><span class="p">(</span><span class="n">page</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pa</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">PAGE_SIZE</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">(</span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pa</span><span class="p">));</span><span class="w"></span>
-<span class="linenos">24</span><span class="w">        </span><span class="p">}</span><span class="w"></span>
-<span class="linenos">25</span><span class="w">        </span><span class="n">mappages</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="n">page</span><span class="p">,</span><span class="w"> </span><span class="n">PTE_U</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_R</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_W</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_X</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">26</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="linenos">27</span><span class="w">    </span><span class="c1">// 同 lab4 map user stack</span>
-<span class="linenos">28</span><span class="w">    </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">ustack</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">va_end</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">PAGE_SIZE</span><span class="p">;</span><span class="w"></span>
-<span class="linenos">29</span><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="w"> </span><span class="n">va</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">ustack</span><span class="p">;</span><span class="w"> </span><span class="n">va</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">ustack</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">USTACK_SIZE</span><span class="p">;</span><span class="w"></span>
-<span class="linenos">30</span><span class="w">        </span><span class="n">va</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">31</span><span class="w">        </span><span class="n">page</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kalloc</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">32</span><span class="w">        </span><span class="n">memset</span><span class="p">(</span><span class="n">page</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">33</span><span class="w">        </span><span class="n">mappages</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">PGSIZE</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">uint64</span><span class="p">)</span><span class="n">page</span><span class="p">,</span><span class="w"> </span><span class="n">PTE_U</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_R</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PTE_W</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">34</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="linenos">35</span><span class="w">    </span><span class="c1">// 设置 trapframe</span>
-<span class="linenos">36</span><span class="w">    </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">trapframe</span><span class="o">-&gt;</span><span class="n">sp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">ustack</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">USTACK_SIZE</span><span class="p">;</span><span class="w"></span>
-<span class="linenos">37</span><span class="w">    </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">trapframe</span><span class="o">-&gt;</span><span class="n">epc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">va_start</span><span class="p">;</span><span class="w"></span>
-<span class="linenos">38</span><span class="w">    </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">max_page</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PGROUNDUP</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">ustack</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">USTACK_SIZE</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">PAGE_SIZE</span><span class="p">;</span><span class="w"></span>
-<span class="linenos">39</span><span class="w">    </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RUNNABLE</span><span class="p">;</span><span class="w"></span>
-<span class="linenos">40</span><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="linenos">41</span><span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
-<p>其中，对于用户栈、trapframe、trampoline 的映射没有变化，但是对 .bin 数据的映射似乎面目全非了，竟然由一个循环完成。其实，这个循环的逻辑十分简单，就是对于 .bin 的每一页，都申请一个新页并进行内容拷贝，最后建立这一页的映射。之所以这么麻烦完全是由于我们的物理内存管理过于简陋，一次只能分配一个页，如果能够分配连续的物理页，那么这个循环可以被一个 mappages 替代。</p>
-<p>那么另一个更重要的问题是，为什么要拷贝呢？想想 lab4 我们是怎么干的，直接把虚存和物理内存映射就好了，根本没有拷贝。那么，拷贝是为了什么呢？其实，按照 lab4 的做法，程序运行之后就会修改仅有一份的程序”原像”，你会发现，lab4 的程序都是一次性的，如果第二次执行，会发现 .data 和 .bss 段数据都被上一次执行改掉了，不是初始化的状态。但是 lab4 的时候，每个程序最多执行一次，所以这么做是可以的。但在 lab5 所有程序都可能被无数次的执行，我们就必须对“程序原像”做保护，在“原像”的拷贝上运行程序了。</p>
-</div>
+        <div class="section" id="id1">
+<h1>进程管理的核心数据结构<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h1>
 <div class="section" id="id2">
-<h2>测例的执行<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
-<p>从本章开始，大家可以发现我们的 run_all_app 函数被 load_init_app 取代了:</p>
-<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1">// os/loader.c</span>
+<h2>本节导读<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
+<p>本节将会展示在本章节的实验中，我们管理进程、调度进程所用到的数据结构。</p>
+</div>
+<div class="section" id="id3">
+<h2>进程队列<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h2>
+<p>不同于此前遍历进程池的调度方式，在本章节中，我们实现了一个简单的队列，用于存储和调度所有的就绪进程：</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1">// os/queue.h</span>
 <span class="linenos"> 2</span>
-<span class="linenos"> 3</span><span class="c1">// load all apps and init the corresponding `proc` structure.</span>
-<span class="linenos"> 4</span><span class="kt">int</span><span class="w"> </span><span class="nf">load_init_app</span><span class="p">()</span><span class="w"></span>
-<span class="linenos"> 5</span><span class="p">{</span><span class="w"></span>
-<span class="linenos"> 6</span><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_id_by_name</span><span class="p">(</span><span class="n">INIT_PROC</span><span class="p">);</span><span class="w"></span>
-<span class="linenos"> 7</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"></span>
-<span class="linenos"> 8</span><span class="w">        </span><span class="n">panic</span><span class="p">(</span><span class="s">"Cannpt find INIT_PROC %s"</span><span class="p">,</span><span class="w"> </span><span class="n">INIT_PROC</span><span class="p">);</span><span class="w"></span>
-<span class="linenos"> 9</span><span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">allocproc</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">10</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">11</span><span class="w">        </span><span class="n">panic</span><span class="p">(</span><span class="s">"allocproc</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">12</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="linenos">13</span><span class="w">    </span><span class="n">debugf</span><span class="p">(</span><span class="s">"load init proc %s"</span><span class="p">,</span><span class="w"> </span><span class="n">INIT_PROC</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">14</span><span class="w">    </span><span class="n">loader</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">15</span><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="linenos">16</span><span class="p">}</span><span class="w"></span>
+<span class="linenos"> 3</span><span class="k">struct</span> <span class="nc">queue</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos"> 4</span><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="n">QUEUE_SIZE</span><span class="p">];</span><span class="w"></span>
+<span class="linenos"> 5</span><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">front</span><span class="p">;</span><span class="w"></span>
+<span class="linenos"> 6</span><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">tail</span><span class="p">;</span><span class="w"></span>
+<span class="linenos"> 7</span><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">empty</span><span class="p">;</span><span class="w"></span>
+<span class="linenos"> 8</span><span class="p">};</span><span class="w"></span>
+<span class="linenos"> 9</span>
+<span class="linenos">10</span><span class="kt">void</span><span class="w"> </span><span class="nf">init_queue</span><span class="p">(</span><span class="k">struct</span> <span class="nc">queue</span><span class="w"> </span><span class="o">*</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">11</span><span class="kt">void</span><span class="w"> </span><span class="nf">push_queue</span><span class="p">(</span><span class="k">struct</span> <span class="nc">queue</span><span class="w"> </span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">12</span><span class="kt">int</span><span class="w"> </span><span class="nf">pop_queue</span><span class="p">(</span><span class="k">struct</span> <span class="nc">queue</span><span class="w"> </span><span class="o">*</span><span class="p">);</span><span class="w"></span>
 </pre></div>
 </div>
-<p>这个 load_init_app load 的 INIT_PROC 一般来说就是我们在本章第一节展示的那个 usershell，不过可以通过在 Makefile 中传入 INIT_PROC 参数而改变，大部分情况下，不推荐修改，这是由于 usershell 具有不错的灵活性。</p>
-<div class="section" id="usershell">
-<h3>usershell<a class="headerlink" href="#usershell" title="永久链接至标题">¶</a></h3>
-<p><code class="docutils literal notranslate"><span class="pre">user/src/usershell.c</span></code> 就是 usershell 的代码了，有兴趣的同学可以研究下这个 shell:</p>
-<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">LF</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x0a</span><span class="p">;</span><span class="w"></span>
-<span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">CR</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x0d</span><span class="p">;</span><span class="w"></span>
-<span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">DL</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x7f</span><span class="p">;</span><span class="w"></span>
-<span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">BS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x08</span><span class="p">;</span><span class="w"></span>
-
-<span class="c1">// 手搓了一个极简的 stack，用来维护用户输入，保存一行的输入</span>
-<span class="kt">char</span><span class="w"> </span><span class="n">line</span><span class="p">[</span><span class="mi">100</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span><span class="w"></span>
-<span class="kt">int</span><span class="w"> </span><span class="n">top</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">push</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="n">c</span><span class="p">){</span><span class="w"> </span><span class="n">line</span><span class="p">[</span><span class="n">top</span><span class="o">++</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">c</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"></span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">pop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">--</span><span class="n">top</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"></span>
-<span class="kt">int</span><span class="w"> </span><span class="nf">is_empty</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">top</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">;}</span><span class="w"></span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">clear</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">top</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"></span>
-
-<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"></span>
-<span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"C user shell</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"&gt;&gt; "</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="kt">char</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getchar</span><span class="p">();</span><span class="w"></span>
-<span class="w">        </span><span class="k">switch</span><span class="w"> </span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="c1">// 回车，执行当前 stack 中字符串对应的程序</span>
-<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="nl">LF</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="nl">CR</span><span class="p">:</span><span class="w"></span>
-<span class="w">            </span><span class="n">printf</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span><span class="w"></span>
-<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">is_empty</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="n">push</span><span class="p">(</span><span class="sc">'\0'</span><span class="p">);</span><span class="w"></span>
-<span class="w">                </span><span class="kt">int</span><span class="w"> </span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fork</span><span class="p">();</span><span class="w"></span>
-<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                    </span><span class="c1">// child process</span>
-<span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">exec</span><span class="p">(</span><span class="n">line</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                        </span><span class="n">printf</span><span class="p">(</span><span class="s">"no such program: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"></span>
-<span class="w">                            </span><span class="n">line</span><span class="p">);</span><span class="w"></span>
-<span class="w">                        </span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
-<span class="w">                    </span><span class="p">}</span><span class="w"></span>
-<span class="w">                    </span><span class="n">panic</span><span class="p">(</span><span class="s">"unreachable!"</span><span class="p">);</span><span class="w"></span>
-<span class="w">                </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                    </span><span class="kt">int</span><span class="w"> </span><span class="n">xstate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="w">                    </span><span class="kt">int</span><span class="w"> </span><span class="n">exit_pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="w">                    </span><span class="n">exit_pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">waitpid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">xstate</span><span class="p">);</span><span class="w"></span>
-<span class="w">                    </span><span class="n">assert</span><span class="p">(</span><span class="n">pid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">exit_pid</span><span class="p">);</span><span class="w"></span>
-<span class="w">                    </span><span class="n">printf</span><span class="p">(</span><span class="s">"Shell: Process %d exited with code %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"></span>
-<span class="w">                        </span><span class="n">pid</span><span class="p">,</span><span class="w"> </span><span class="n">xstate</span><span class="p">);</span><span class="w"></span>
-<span class="w">                </span><span class="p">}</span><span class="w"></span>
-<span class="w">                </span><span class="n">clear</span><span class="p">();</span><span class="w"></span>
-<span class="w">            </span><span class="p">}</span><span class="w"></span>
-<span class="w">            </span><span class="n">printf</span><span class="p">(</span><span class="s">"&gt;&gt; "</span><span class="p">);</span><span class="w"></span>
-<span class="w">            </span><span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span><span class="w"></span>
-<span class="w">            </span><span class="k">break</span><span class="p">;</span><span class="w"></span>
-<span class="w">        </span><span class="c1">// 退格建，pop一个char</span>
-<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="nl">BS</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="nl">DL</span><span class="p">:</span><span class="w"></span>
-<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">is_empty</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                </span><span class="n">putchar</span><span class="p">(</span><span class="n">BS</span><span class="p">);</span><span class="w"></span>
-<span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="s">" "</span><span class="p">);</span><span class="w"></span>
-<span class="w">                </span><span class="n">putchar</span><span class="p">(</span><span class="n">BS</span><span class="p">);</span><span class="w"></span>
-<span class="w">                </span><span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span><span class="w"></span>
-<span class="w">                </span><span class="n">pop</span><span class="p">();</span><span class="w"></span>
-<span class="w">            </span><span class="p">}</span><span class="w"></span>
-<span class="w">            </span><span class="k">break</span><span class="p">;</span><span class="w"></span>
-<span class="w">        </span><span class="c1">// 普通输入，回显并 push 一个 char</span>
-<span class="w">        </span><span class="k">default</span><span class="o">:</span><span class="w"></span>
-<span class="w">            </span><span class="n">putchar</span><span class="p">(</span><span class="n">c</span><span class="p">);</span><span class="w"></span>
-<span class="w">            </span><span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span><span class="w"></span>
-<span class="w">            </span><span class="n">push</span><span class="p">(</span><span class="n">c</span><span class="p">);</span><span class="w"></span>
-<span class="w">            </span><span class="k">break</span><span class="p">;</span><span class="w"></span>
-<span class="w">        </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<p>队列的实现非常简单，大小为1024，具体的实现大家可以查看queue.c进行查看。我们将在后面的部分展示我们要如何使用这一数据结构</p>
+</div>
+<div class="section" id="id4">
+<h2>进程的调度<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
+<p>进程的调度主要体现在proc.c的scheduler函数中：</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1">// os/proc.c</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="kt">void</span><span class="w"> </span><span class="nf">scheduler</span><span class="p">()</span><span class="w"></span>
+<span class="linenos"> 4</span><span class="p">{</span><span class="w"></span>
+<span class="linenos"> 5</span><span class="w">        </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">;</span><span class="w"></span>
+<span class="linenos"> 6</span><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(;;)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos"> 7</span><span class="w">                </span><span class="cm">/*int has_proc = 0;</span>
+<span class="linenos"> 8</span><span class="cm">                for (p = pool; p &lt; &amp;pool[NPROC]; p++) {</span>
+<span class="linenos"> 9</span><span class="cm">                        if (p-&gt;state == RUNNABLE) {</span>
+<span class="linenos">10</span><span class="cm">                                has_proc = 1;</span>
+<span class="linenos">11</span><span class="cm">                            tracef("swtich to proc %d", p - pool);</span>
+<span class="linenos">12</span><span class="cm">                            p-&gt;state = RUNNING;</span>
+<span class="linenos">13</span><span class="cm">                            current_proc = p;</span>
+<span class="linenos">14</span><span class="cm">                            swtch(&amp;idle.context, &amp;p-&gt;context);</span>
+<span class="linenos">15</span><span class="cm">                    }</span>
+<span class="linenos">16</span><span class="cm">            }</span>
+<span class="linenos">17</span><span class="cm">                if(has_proc == 0) {</span>
+<span class="linenos">18</span><span class="cm">                        panic("all app are over!\n");</span>
+<span class="linenos">19</span><span class="cm">            }*/</span><span class="w"></span>
+<span class="linenos">20</span><span class="w">            </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fetch_task</span><span class="p">();</span><span class="w"></span>
+<span class="linenos">21</span><span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">22</span><span class="w">                        </span><span class="n">panic</span><span class="p">(</span><span class="s">"all app are over!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">23</span><span class="w">            </span><span class="p">}</span><span class="w"></span>
+<span class="linenos">24</span><span class="w">            </span><span class="n">tracef</span><span class="p">(</span><span class="s">"swtich to proc %d"</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">pool</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">25</span><span class="w">                </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RUNNING</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">26</span><span class="w">                </span><span class="n">current_proc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">27</span><span class="w">                </span><span class="n">swtch</span><span class="p">(</span><span class="o">&amp;</span><span class="n">idle</span><span class="p">.</span><span class="n">context</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">context</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">28</span><span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="linenos">29</span><span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p>可以看到这个测例实际上就是实现了一个简单的字符串处理的函数，并且针对解析得到的不同的指令调用不同的系统调用。要注意这需要shell支持read的系统调用。当读入用户的输入时，它会死循环的等待用户输入一个代表程序名称的字符串(通过sys_read)，当用户按下空格之后，shell 会使用 fork 和 exec 创建并执行这个程序，然后通过 sys_wait 来等待程序执行结束，并输出 exit_code。有了 shell 之后，我们可以只执行自己希望的程序，也可以执行某一个程序很多次来观察输出，这对于使用体验是极大的提升！可以说，第五章的所有努力都是为了支持 shell。</p>
-<p>我们简单看一下sys_read的实现，它与 sys_write 有点相似：</p>
-<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">uint64</span><span class="w"> </span><span class="nf">sys_read</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">uint64</span><span class="w"> </span><span class="n">len</span><span class="p">)</span><span class="w"></span>
-<span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fd</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">STDIN</span><span class="p">)</span><span class="w"></span>
-<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_proc</span><span class="p">();</span><span class="w"></span>
-<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">str</span><span class="p">[</span><span class="n">MAX_STR_LEN</span><span class="p">];</span><span class="w"></span>
-<span class="w">    </span><span class="n">len</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MIN</span><span class="p">(</span><span class="n">len</span><span class="p">,</span><span class="w"> </span><span class="n">MAX_STR_LEN</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">len</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="c1">// consgetc() 会阻塞式的等待读取一个 char</span>
-<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">consgetc</span><span class="p">();</span><span class="w"></span>
-<span class="w">        </span><span class="n">str</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">c</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="n">copyout</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="p">,</span><span class="w"> </span><span class="n">str</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">len</span><span class="p">;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
-<p>目前我们只支持标准输入stdin的输入（对应fd = STDIN）。</p>
-</div>
+<p>可以看到，我们移除了原来遍历进程池，选出其中就绪状态的进程来运行的这种朴素调度方式，而是直接使用了fetch_task函数从队列中获取应当调度的进程，再进行相应的切换；而对于已经运行结束或时间片耗尽的进程，则将其push进入队列之中。这种调度方式，相比之前提高了调度的效率，可以在常数时间复杂度下完成一次调度。由于使用的是队列，因此大家也会发现，我们的框架代码所使用的FIFO的调度算法。</p>
 </div>
 </div>
 
@@ -442,12 +330,12 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="3exercise.html">
+          <a class="next-page" href="3shell-and-binloader.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">chapter5练习</div>
+                <div class="title">shell与测例的加载</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -458,7 +346,7 @@
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">进程的重要系统调用</div>
+                <div class="title">与进程有关的重要系统调用</div>
                 
               </div>
             </a>
@@ -492,13 +380,10 @@
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">shell与测例的加载</a><ul>
-<li><a class="reference internal" href="#id1">本节导读</a></li>
-<li><a class="reference internal" href="#bin-loader">新的bin_loader</a></li>
-<li><a class="reference internal" href="#id2">测例的执行</a><ul>
-<li><a class="reference internal" href="#usershell">usershell</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#">进程管理的核心数据结构</a><ul>
+<li><a class="reference internal" href="#id2">本节导读</a></li>
+<li><a class="reference internal" href="#id3">进程队列</a></li>
+<li><a class="reference internal" href="#id4">进程的调度</a></li>
 </ul>
 </li>
 </ul>

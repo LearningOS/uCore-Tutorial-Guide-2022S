@@ -205,9 +205,10 @@
 </li>
 <li class="toctree-l1 current has-children current-page"><a class="current reference internal" href="#">第五章：进程及进程管理</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="0intro.html">引言</a></li>
-<li class="toctree-l2"><a class="reference internal" href="1process.html">进程的重要系统调用</a></li>
-<li class="toctree-l2"><a class="reference internal" href="2core-data-structures.html">shell与测例的加载</a></li>
-<li class="toctree-l2"><a class="reference internal" href="3exercise.html">chapter5练习</a></li>
+<li class="toctree-l2"><a class="reference internal" href="1process.html">与进程有关的重要系统调用</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2core-data-structures.html">进程管理的核心数据结构</a></li>
+<li class="toctree-l2"><a class="reference internal" href="3shell-and-binloader.html">shell与测例的加载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="4exercise.html">chapter5练习</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../chapter6/index.html">第六章：文件系统与I/O重定向</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -272,7 +273,7 @@
 <li class="toctree-l2"><a class="reference internal" href="0intro.html#id4">本章代码导读</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="1process.html">进程的重要系统调用</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="1process.html">与进程有关的重要系统调用</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="1process.html#id2">进程复习</a></li>
 <li class="toctree-l2"><a class="reference internal" href="1process.html#id3">重要系统调用</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="1process.html#fork">fork 系统调用</a></li>
@@ -282,24 +283,30 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="2core-data-structures.html">shell与测例的加载</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="2core-data-structures.html#id1">本节导读</a></li>
-<li class="toctree-l2"><a class="reference internal" href="2core-data-structures.html#bin-loader">新的bin_loader</a></li>
-<li class="toctree-l2"><a class="reference internal" href="2core-data-structures.html#id2">测例的执行</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="2core-data-structures.html#usershell">usershell</a></li>
+<li class="toctree-l1"><a class="reference internal" href="2core-data-structures.html">进程管理的核心数据结构</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="2core-data-structures.html#id2">本节导读</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2core-data-structures.html#id3">进程队列</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2core-data-structures.html#id4">进程的调度</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="3shell-and-binloader.html">shell与测例的加载</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="3shell-and-binloader.html#id1">本节导读</a></li>
+<li class="toctree-l2"><a class="reference internal" href="3shell-and-binloader.html#bin-loader">新的bin_loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="3shell-and-binloader.html#id2">测例的执行</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="3shell-and-binloader.html#usershell">usershell</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="3exercise.html">chapter5练习</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="3exercise.html#id1">本章任务</a></li>
-<li class="toctree-l2"><a class="reference internal" href="3exercise.html#id2">编程作业</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="3exercise.html#id3">进程创建</a></li>
-<li class="toctree-l3"><a class="reference internal" href="3exercise.html#stride">stride 调度算法</a></li>
+<li class="toctree-l1"><a class="reference internal" href="4exercise.html">chapter5练习</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="4exercise.html#id1">本章任务</a></li>
+<li class="toctree-l2"><a class="reference internal" href="4exercise.html#id2">编程作业</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="4exercise.html#id3">进程创建</a></li>
+<li class="toctree-l3"><a class="reference internal" href="4exercise.html#stride">stride 调度算法</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="3exercise.html#id4">问答作业</a></li>
-<li class="toctree-l2"><a class="reference internal" href="3exercise.html#id5">报告要求</a></li>
+<li class="toctree-l2"><a class="reference internal" href="4exercise.html#id4">问答作业</a></li>
+<li class="toctree-l2"><a class="reference internal" href="4exercise.html#id5">报告要求</a></li>
 </ul>
 </li>
 </ul>

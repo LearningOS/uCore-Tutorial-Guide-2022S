@@ -2,10 +2,10 @@
 <html class="no-js" lang="zh_CN">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="shell与测例的加载" href="2core-data-structures.html" /><link rel="prev" title="引言" href="0intro.html" />
+    <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="进程管理的核心数据结构" href="2core-data-structures.html" /><link rel="prev" title="引言" href="0intro.html" />
 
     <meta name="generator" content="sphinx-4.1.2, furo 2021.08.31"/>
-        <title>进程的重要系统调用 - uCore-Tutorial-Guide-2022S 0.1 文档</title>
+        <title>与进程有关的重要系统调用 - uCore-Tutorial-Guide-2022S 0.1 文档</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=c7c65a82b42f6b978e58466c1e9ef2509836d916" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=16fb25fabf47304eee183a5e9af80b1ba98259b1" />
@@ -205,9 +205,10 @@
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">第五章：进程及进程管理</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="0intro.html">引言</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">进程的重要系统调用</a></li>
-<li class="toctree-l2"><a class="reference internal" href="2core-data-structures.html">shell与测例的加载</a></li>
-<li class="toctree-l2"><a class="reference internal" href="3exercise.html">chapter5练习</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">与进程有关的重要系统调用</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2core-data-structures.html">进程管理的核心数据结构</a></li>
+<li class="toctree-l2"><a class="reference internal" href="3shell-and-binloader.html">shell与测例的加载</a></li>
+<li class="toctree-l2"><a class="reference internal" href="4exercise.html">chapter5练习</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../chapter6/index.html">第六章：文件系统与I/O重定向</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -263,10 +264,10 @@
           </label>
         </div>
         <div class="section" id="id1">
-<h1>进程的重要系统调用<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h1>
+<h1>与进程有关的重要系统调用<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h1>
 <div class="section" id="id2">
 <h2>进程复习<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
-<p>本章虽然添加了一系列的系统调用，但是关于进程的调度等是基本没有修改的。主要修改的是进程的结构体以及针对系统调用的支持。</p>
+<p>本章添加了一系列的系统调用，主要修改的是进程的结构体以及针对系统调用的支持，以及部分关于进程调度相关的数据结构。</p>
 <p>我们看一看我们进程支持的状态:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">UNUSED</span><span class="p">,</span> <span class="n">USED</span><span class="p">,</span> <span class="n">SLEEPING</span><span class="p">,</span> <span class="n">RUNNABLE</span><span class="p">,</span> <span class="n">RUNNING</span><span class="p">,</span> <span class="n">ZOMBIE</span>
 </pre></div>
@@ -305,29 +306,24 @@
 </pre></div>
 </div>
 <p>进程A调用 <code class="docutils literal notranslate"><span class="pre">fork</span></code> 系统调用之后，内核会创建一个新进程B，我们设定B是成为A的子进程。也就会设定其parent指向A的地址。我们再来看一下fork是如何进行新进程的初始化的:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">..</span> <span class="n">code</span><span class="o">-</span><span class="n">block</span><span class="p">::</span> <span class="n">c</span>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">fork</span><span class="p">()</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_proc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">np</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">allocproc</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// Copy user memory from parent to child.</span>
+<span class="w">    </span><span class="n">uvmcopy</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">np</span><span class="o">-&gt;</span><span class="n">pagetable</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">max_page</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">np</span><span class="o">-&gt;</span><span class="n">max_page</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">max_page</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// copy saved user registers.</span>
+<span class="w">    </span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">-&gt;</span><span class="n">trapframe</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">trapframe</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// Cause fork to return 0 in the child.</span>
+<span class="w">    </span><span class="n">np</span><span class="o">-&gt;</span><span class="n">trapframe</span><span class="o">-&gt;</span><span class="n">a0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">np</span><span class="o">-&gt;</span><span class="n">parent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">np</span><span class="o">-&gt;</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RUNNABLE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">np</span><span class="o">-&gt;</span><span class="n">pid</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<blockquote>
-<div><p>int fork()
-{</p>
-<blockquote>
-<div><p>struct proc <a href="#id4"><span class="problematic" id="id5">*</span></a>p = curr_proc();
-struct proc <a href="#id6"><span class="problematic" id="id7">*</span></a>np = allocproc();
-// Copy user memory from parent to child.
-uvmcopy(p-&gt;pagetable, np-&gt;pagetable, p-&gt;max_page);
-np-&gt;max_page = p-&gt;max_page;
-// copy saved user registers.
-<a href="#id8"><span class="problematic" id="id9">*</span></a>(np-&gt;trapframe) = <a href="#id10"><span class="problematic" id="id11">*</span></a>(p-&gt;trapframe);
-// Cause fork to return 0 in the child.
-np-&gt;trapframe-&gt;a0 = 0;
-np-&gt;parent = p;
-np-&gt;state = RUNNABLE;
-return np-&gt;pid;</p>
-</div></blockquote>
-<p>}</p>
-</div></blockquote>
-<p>首先，fork调用allocproc分配一个新的进程PCB（具体内容请见lab3，lab4，注意页表的初始化也在alloc时完成了）。之后，根据fork的规定，我们需要把进程A的内存拷贝至B的进程使得二者一样。我们不能仅仅拷贝一份一模一样的页表，那么父子进程就会修改同样的物理内存，发生数据冲突，不符合进程隔离的要求。需要把页表对应的页先拷贝一份，然后建立一个对这些新页有同样映射的页表。这一工作由一个 uvmcopy 的函数去做。uvmcopy函数会遍历A进程的页表，以页为单位将对应的内存复制到B进程页表中新kalloc的空闲地址之中。</p>
+<p>首先，fork调用allocproc分配一个新的进程PCB（具体内容请见前几个lab，注意页表的初始化也在alloc时完成了）。之后，根据fork的规定，我们需要把进程A的内存拷贝至B的进程使得二者一样。我们不能仅仅拷贝一份一模一样的页表，那么父子进程就会修改同样的物理内存，发生数据冲突，不符合进程隔离的要求。需要把页表对应的页先拷贝一份，然后建立一个对这些新页有同样映射的页表。这一工作由一个 uvmcopy 的函数去做。uvmcopy函数会遍历A进程的页表，以页为单位将对应的内存复制到B进程页表中新kalloc的空闲地址之中。</p>
 <div class="admonition warning">
 <p class="admonition-title">警告</p>
 <p>注意 mmap 对于进程 max_page 的影响。在 ch4 中，即便实现错误导致了内存泄漏也不会有直接致命的影响，但在 lab5 就不是这样了！修复你的 mmap 实现！</p>
@@ -422,7 +418,7 @@ return np-&gt;pid;</p>
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">shell与测例的加载</div>
+                <div class="title">进程管理的核心数据结构</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -467,7 +463,7 @@ return np-&gt;pid;</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">进程的重要系统调用</a><ul>
+<li><a class="reference internal" href="#">与进程有关的重要系统调用</a><ul>
 <li><a class="reference internal" href="#id2">进程复习</a></li>
 <li><a class="reference internal" href="#id3">重要系统调用</a><ul>
 <li><a class="reference internal" href="#fork">fork 系统调用</a></li>
