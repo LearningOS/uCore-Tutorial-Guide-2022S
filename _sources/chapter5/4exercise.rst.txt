@@ -90,70 +90,72 @@ lab3中我们引入了任务调度的概念，可以在不同任务之间切换�
 2. [选做，不占分] 其实使用了题(1)的策略之后，fork + exec 所带来的无效资源的问题已经基本被解决了，但是今年来 fork 还是在被不断的批判，那么到底是什么正在"杀死"fork？回答合理即可。可以参考 `fork-hotos19 <https://www.microsoft.com/en-us/research/uploads/prod/2019/04/fork-hotos19.pdf>`_ 。
 
 3. 请阅读代码并分析如下程序的输出，不考虑运行错误，不考虑行缓冲，不考虑中断：
-    
-    .. code-block:: c 
+   
+   .. code-block:: c 
 
-        int main(){
-            int val = 2;
-            
-            printf("%d", 0);
-            int pid = fork();
-            if (pid == 0) {
-                val++;
-                printf("%d", val);
-            } else {
-                val--;
-                printf("%d", val);
-                wait(NULL);
-            }
-            val++;
-            printf("%d", val);
-            return 0;
-        } 
+      int main(){
+          int val = 2;
+        
+          printf("%d", 0);
+          int pid = fork();
+          if (pid == 0) {
+              val++;
+              printf("%d", val);
+          } else {
+              val--;
+              printf("%d", val);
+              wait(NULL);
+          }
+          val++;
+          printf("%d", val);
+          return 0;
+      } 
 
 
-    如果 fork() 之后一定主程序先运行结果如何？如果 fork() 之后一定 child 先运行结果如何？
+   如果 fork() 之后一定主程序先运行结果如何？如果 fork() 之后一定 child 先运行结果如何？
 
 
 4. 请分析如下程序运行后最终输出 `A` 的数量(已知 ``&&`` 的优先级比 ``||`` 高)：
 
-    .. code-block:: c 
+   .. code-block:: c 
 
-        int main() {
-            fork() && fork() && fork() || fork() && fork() || fork() && fork();
-            printf("A");
-            return 0' 
-        }
+      int main() {
+          fork() && fork() && fork() || fork() && fork() || fork() && fork();
+          printf("A");
+          return 0;
+      }
 
-    [选做，不占分] 更进一步，如果给出一个 ``&&`` ``||`` 的序列，你如何设计一个程序来得到答案？
+   [选做，不占分] 更进一步，如果给出一个 ``&&`` ``||`` 的序列，你如何设计一个程序来得到答案？
 
 5. stride 算法深入
 
-    stride 算法原理非常简单，但是有一个比较大的问题。例如两个 pass = 10 的进程，使用 8bit 无符号整形储存 stride， p1.stride = 255, p2.stride = 250，在 p2 执行一个时间片后，理论上下一次应该 p1 执行。
+   stride 算法原理非常简单，但是有一个比较大的问题。例如两个 pass = 10 的进程，使用 8bit 无符号整形储存 stride， p1.stride = 255, p2.stride = 250，在 p2 执行一个时间片后，理论上下一次应该 p1 执行。
 
-    - 实际情况是轮到 p1 执行吗？为什么？
+   - 实际情况是轮到 p1 执行吗？为什么？
 
-    我们之前要求进程优先级 >= 2 其实就是为了解决这个问题。可以证明，**在不考虑溢出的情况下**, 在进程优先级全部 >= 2 的情况下，如果严格按照算法执行，那么 STRIDE_MAX – STRIDE_MIN <= BigStride / 2。
+   我们之前要求进程优先级 >= 2 其实就是为了解决这个问题。可以证明，**在不考虑溢出的情况下**, 在进程优先级全部 >= 2 的情况下，如果严格按照算法执行，那么 STRIDE_MAX – STRIDE_MIN <= BigStride / 2。
 
-    - 为什么？尝试简单说明（传达思想即可，不要求严格证明）。
+   - 为什么？尝试简单说明（传达思想即可，不要求严格证明）。
     
-    已知以上结论，**在考虑溢出的情况下**，假设我们通过逐个比较得到 Stride 最小的进程，请设计一个合适的比较函数，用来正确比较两个 Stride 的真正大小：
+   已知以上结论，**在考虑溢出的情况下**，假设我们通过逐个比较得到 Stride 最小的进程，请设计一个合适的比较函数，用来正确比较两个 Stride 的真正大小：
 
-    .. code-block:: c
+   .. code-block:: c
     
-        typedef unsigned long long Stride_t;
-        const Stride_t BIG_STRIDE = 0xffffffffffffffffULL;
-        int cmp(Stride_t a, Stride_t b) {
-            // YOUR CODE HERE
-            // return 1 if a > b
-            // return -1 if a < b
-            // return 0 if a == b
-        }
+      typedef unsigned long long Stride_t;
+      const Stride_t BIG_STRIDE = 0xffffffffffffffffULL;
+      int cmp(Stride_t a, Stride_t b) {
+          // YOUR CODE HERE
+          // return 1 if a > b
+          // return -1 if a < b
+          // return 0 if a == b
+      }
 
 
-    例子：假设使用 8 bits 储存 stride, BigStride = 255。那么：
-    * `cmp(125, 255) == 1`
-    * `cmp(129, 255) == -1`
+   例子：假设使用 8 bits 储存 stride, BigStride = 255。那么：
+
+   * `cmp(125, 255) == 1`
+   
+   * `cmp(129, 255) == -1`
 
 报告要求
 ---------------------------------------
