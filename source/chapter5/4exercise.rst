@@ -66,7 +66,7 @@ lab3中我们引入了任务调度的概念，可以在不同任务之间切换�
   * C 接口：`int setpriority(long long prio);`
   * 说明：设定自身进程优先级，只要 prio 在 [2, isize_max] 就成功，返回 prio，否则返回 -1。
 * 针对测例
-  * `ch3_setprio`
+  * `ch5_setprio`
 
 实现 sys_set_priority 之后，你可以通过　``make test CHAPTER=5`` 来进行测试。
 
