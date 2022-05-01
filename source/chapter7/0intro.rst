@@ -23,7 +23,7 @@
 
 .. code-block:: console
 
-   $ git checkout ch6
+   $ git checkout ch7
 
 在 qemu 模拟器上运行本章代码：
 
@@ -31,7 +31,7 @@
 
    $ make test BASE=1
    # 在 shell 中执行：
-   >> ch6b_usertest
+   >> ch7b_usertest
 
 本章代码树
 -----------------------------------------

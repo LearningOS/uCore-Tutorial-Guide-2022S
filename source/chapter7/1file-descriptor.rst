@@ -1,7 +1,7 @@
-文件系统初步
+文件系统扩充
 ===========================================
 
-文件简介
+管道的文件抽象
 -------------------------------------------
 
 .. chyyuu 可以简单介绍一下文件的起源???
@@ -18,15 +18,15 @@
 
 在QEMU模拟的RV计算机和K210物理硬件上存在串口设备，操作系统通过串口设备的输入侧连接到了同学使用的计算机的键盘设备，而串口设备的输出侧这连接到了同学使用的计算机的显示器窗口上。由于RustSBI直接管理了串口设备，并给操作系统提供了两个SBI接口，从而使得操作系统可以很简单地通过这两个SBI接口输出或输入字符。
 
-文件是提供给应用程序用的，但有操作系统来进行管理。虽然文件可代表很多种不同类型的I/O 资源，但是在进程看来，所有文件的访问都可以通过一个很简洁的统一抽象接口 ``File`` 来进行。我们看一下我们OS框架是如何定义一个文件的：
+文件是提供给应用程序用的，但有操作系统来进行管理。虽然文件可代表很多种不同类型的I/O 资源，但是在进程看来，所有文件的访问都可以通过一个很简洁的统一抽象接口 ``File`` 来进行。我们看一下我们OS框架对文件结构的扩充：
 
 .. code-block:: c
 
     // file.h
     struct file {
-        enum { FD_NONE = 0, FD_PIPE} type;  // FD_NODE means this file is null.
+        enum { FD_NONE = 0, FD_PIPE} type;  // FD_PIPE means this file is a  pipe.
         int ref;           // reference count
-        char readable;
+        char readable;     
         char writable;
         struct pipe *pipe; // FD_PIPE
     };
@@ -64,33 +64,6 @@
         }
         memset(f, 0, sizeof(struct file));
     }
-
-注意文件对于进程而言也是其需要记录的一种资源，因此我们在进程对应的PCB结构体之中也需要记录进程打开的文件信息。我们给PCB增加文件指针数组。
-
-.. code-block:: c
-
-    // proc.h
-    // Per-process state
-    struct proc {
-        // ...
-
-    +   struct file* files[16];
-    };
-
-    // os/proc.c
-    int fdalloc(struct file* f) {
-        struct proc* p = curr_proc();
-        // fd = 0,1,2 is reserved for stdio/stdout/stderr
-        for(int i = 3; i < FD_MAX; ++i) {
-            if(p->files[i] == 0) {
-                p->files[i] = f;
-                return i;
-            }
-        }
-        return -1;
-    }
-
-一个进程能打开的文件是有限的（我们设置为16）。一个进程如果要打开某一个文件，其文件指针数组必须有空位。如果有，就把下标做为文件的fd，并把指定文件指针存入数组之中。
 
 
 pipe管道的实现
