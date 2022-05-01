@@ -25,18 +25,18 @@
 
 .. code-block:: console
 
-   $ git checkout ch7
+   $ git checkout ch6
 
 在 qemu 模拟器上运行本章代码：
 
 .. code-block:: console
 
    $ make test BASE=1
-   >> ch7b_usertest
+   >> ch6b_usertest
 
 .. code-block:: bash
 
-    >> ch7b_filetest
+    >> ch6b_filetest
     file_test passed!
     Shell: Process 2 exited with code 0
     >> 

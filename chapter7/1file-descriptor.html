@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="进程通讯与 fork" href="2pipe.html" /><link rel="prev" title="引言" href="0intro.html" />
 
     <meta name="generator" content="sphinx-4.1.2, furo 2021.08.31"/>
-        <title>文件系统初步 - uCore-Tutorial-Guide-2022S 0.1 文档</title>
+        <title>文件系统扩充 - uCore-Tutorial-Guide-2022S 0.1 文档</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=c7c65a82b42f6b978e58466c1e9ef2509836d916" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=16fb25fabf47304eee183a5e9af80b1ba98259b1" />
@@ -220,7 +220,7 @@
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">第七章：进程间通信</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="0intro.html">引言</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">文件系统初步</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">文件系统扩充</a></li>
 <li class="toctree-l2"><a class="reference internal" href="2pipe.html">进程通讯与 fork</a></li>
 <li class="toctree-l2"><a class="reference internal" href="3exercise.html">chapter6练习</a></li>
 </ul>
@@ -264,9 +264,9 @@
           </label>
         </div>
         <div class="section" id="id1">
-<h1>文件系统初步<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h1>
+<h1>文件系统扩充<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h1>
 <div class="section" id="id2">
-<h2>文件简介<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
+<h2>管道的文件抽象<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
 <p>在Unix操作系统之前，大多数的操作系统提供了各种复杂且不规则的设计实现来处理各种I/O设备（也可称为I/O资源），如键盘、显示器、以磁盘为代表的存储介质、以串口为代表的通信设备等，使得应用程序开发繁琐且很难统一表示和处理I/O设备。随着UNIX的诞生，一个简洁优雅的I/O设备的抽象出现了，这就是 <strong>文件</strong> 。在 Unix 操作系统中，”<strong>一切皆文件</strong>“ (Everything is a file) 是一种重要的设计思想，这种设计思想继承于 Multics 操作系统的 <strong>通用性</strong> 的设计理念，并进行了进一步的简化。在本章中，应用程序看到并被操作系统管理的 <strong>文件</strong> (File) 就是一系列的字节组合。操作系统不关心文件内容，只关心如何对文件按字节流进行读写的机制，这就意味着任何程序可以读写任何文件（即字节流），对文件具体内容的解析是应用程序的任务，操作系统对此不做任何干涉。例如，一个Rust编译器可以读取一个C语言源程序并进行编译，操作系统并并不会阻止这样的事情发生。</p>
 <p>有了文件这样的抽象后，操作系统内核就可把能读写的I/O资源按文件来进行管理，并把文件分配给进程，让进程以统一的文件访问接口与I/O 资源进行交互。在我们目前涉及到的I/O硬件设备中，大致可以分成以下几种：</p>
 <ul class="simple">
@@ -275,10 +275,10 @@
 <li><p><strong>串口设备</strong> 是获得字符输入和展示程序的字符输出结果的一种字符通信设备，可抽象为一种可读写性质的文件，可以向这个文件中写入一系列的字节序列传给程序，也可把程序要显示的字符传输出去；还可以把这个串口设备拆分成两个文件，一个用于获取输入字符的只读文件和一个传出输出字符的只写文件。</p></li>
 </ul>
 <p>在QEMU模拟的RV计算机和K210物理硬件上存在串口设备，操作系统通过串口设备的输入侧连接到了同学使用的计算机的键盘设备，而串口设备的输出侧这连接到了同学使用的计算机的显示器窗口上。由于RustSBI直接管理了串口设备，并给操作系统提供了两个SBI接口，从而使得操作系统可以很简单地通过这两个SBI接口输出或输入字符。</p>
-<p>文件是提供给应用程序用的，但有操作系统来进行管理。虽然文件可代表很多种不同类型的I/O 资源，但是在进程看来，所有文件的访问都可以通过一个很简洁的统一抽象接口 <code class="docutils literal notranslate"><span class="pre">File</span></code> 来进行。我们看一下我们OS框架是如何定义一个文件的：</p>
+<p>文件是提供给应用程序用的，但有操作系统来进行管理。虽然文件可代表很多种不同类型的I/O 资源，但是在进程看来，所有文件的访问都可以通过一个很简洁的统一抽象接口 <code class="docutils literal notranslate"><span class="pre">File</span></code> 来进行。我们看一下我们OS框架对文件结构的扩充：</p>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// file.h</span>
 <span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">FD_NONE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">FD_PIPE</span><span class="p">}</span><span class="w"> </span><span class="n">type</span><span class="p">;</span><span class="w">  </span><span class="c1">// FD_NODE means this file is null.</span>
+<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">FD_NONE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">FD_PIPE</span><span class="p">}</span><span class="w"> </span><span class="n">type</span><span class="p">;</span><span class="w">  </span><span class="c1">// FD_PIPE means this file is a  pipe.</span>
 <span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">ref</span><span class="p">;</span><span class="w">           </span><span class="c1">// reference count</span>
 <span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">readable</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">writable</span><span class="p">;</span><span class="w"></span>
@@ -316,30 +316,6 @@
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p>注意文件对于进程而言也是其需要记录的一种资源，因此我们在进程对应的PCB结构体之中也需要记录进程打开的文件信息。我们给PCB增加文件指针数组。</p>
-<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// proc.h</span>
-<span class="c1">// Per-process state</span>
-<span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// ...</span>
-
-<span class="o">+</span><span class="w">   </span><span class="k">struct</span> <span class="nc">file</span><span class="o">*</span><span class="w"> </span><span class="n">files</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span><span class="w"></span>
-<span class="p">};</span><span class="w"></span>
-
-<span class="c1">// os/proc.c</span>
-<span class="kt">int</span><span class="w"> </span><span class="nf">fdalloc</span><span class="p">(</span><span class="k">struct</span> <span class="nc">file</span><span class="o">*</span><span class="w"> </span><span class="n">f</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="k">struct</span> <span class="nc">proc</span><span class="o">*</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_proc</span><span class="p">();</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// fd = 0,1,2 is reserved for stdio/stdout/stderr</span>
-<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">FD_MAX</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">files</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">files</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">f</span><span class="p">;</span><span class="w"></span>
-<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">i</span><span class="p">;</span><span class="w"></span>
-<span class="w">        </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
-<p>一个进程能打开的文件是有限的（我们设置为16）。一个进程如果要打开某一个文件，其文件指针数组必须有空位。如果有，就把下标做为文件的fd，并把指定文件指针存入数组之中。</p>
 </div>
 <div class="section" id="pipe">
 <h2>pipe管道的实现<a class="headerlink" href="#pipe" title="永久链接至标题">¶</a></h2>
@@ -627,8 +603,8 @@
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">文件系统初步</a><ul>
-<li><a class="reference internal" href="#id2">文件简介</a></li>
+<li><a class="reference internal" href="#">文件系统扩充</a><ul>
+<li><a class="reference internal" href="#id2">管道的文件抽象</a></li>
 <li><a class="reference internal" href="#pipe">pipe管道的实现</a></li>
 <li><a class="reference internal" href="#id3">pipe 相关系统调用</a></li>
 </ul>
