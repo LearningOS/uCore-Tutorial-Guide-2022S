@@ -5,8 +5,8 @@ chapter6练习
 
 本章任务
 -----------------------------------------------
-- ``ch6b_usertest`` ``ch6_mergetest`` 
-- merge ch6 的改动，然后再次测试 ch6_usertest 和 ch6b_usertest。
+- ``ch6b_usertest``  
+- merge ch6 的改动，然后再次测试 ch6_usertest。
 - 完成本章问答作业。
 - 完成本章编程作业。
 - 最终，完成实验报告并 push 你的 ch6 分支到远程仓库。
@@ -22,44 +22,44 @@ chapter6练习
 硬链接要求两个不同的目录项指向同一个文件，在我们的文件系统中也就是两个不同名称目录项指向同一个磁盘块。本节要求实现三个系统调用 ``sys_linkat、sys_unlinkat、sys_stat`` 。
   
 **linkat**：
-
-    * syscall ID: 37
-    * 功能：创建一个文件的一个硬链接， `linkat标准接口 <https://linux.die.net/man/2/linkat>`_ 。
-    * 接口： ``int linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, unsigned int flags)``
-    * 参数：
-        * olddirfd，newdirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
-        * flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。
-        * oldpath：原有文件路径
-        * newpath: 新的链接文件路径。
-    * 说明：
-        * 为了方便，不考虑新文件路径已经存在的情况（属于未定义行为），除非链接同名文件。
-        * 返回值：如果出现了错误则返回 -1，否则返回 0。
-    * 可能的错误
-        * 链接同名文件。
+ 
+- syscall ID: 37
+    -功能：创建一个文件的一个硬链接， `linkat标准接口 <https://linux.die.net/man/2/linkat>`_ 。
+    - 接口： ``int linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, unsigned int flags)``
+    - 参数：
+        - olddirfd，newdirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
+        - flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。
+        - oldpath：原有文件路径
+        - newpath: 新的链接文件路径。
+    - 说明：
+       - 为了方便，不考虑新文件路径已经存在的情况（属于未定义行为），除非链接同名文件。
+       - 返回值：如果出现了错误则返回 -1，否则返回 0。
+    - 可能的错误
+       - 链接同名文件。
 
 **unlinkat**:
 
-    * syscall ID: 35
-    * 功能：取消一个文件路径到文件的链接, `unlinkat标准接口 <https://linux.die.net/man/2/unlinkat>`_ 。
-    * 接口： ``int unlinkat(int dirfd, char* path, unsigned int flags)``
-    * 参数：
-        * dirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
-        * flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。
-        * path：文件路径。
-    * 说明：
-        * 需要注意 unlink 掉所有硬链接后彻底删除文件的情况。
-    * 返回值：如果出现了错误则返回 -1，否则返回 0。
-    * 可能的错误
-        * 文件不存在。
+    - syscall ID: 35
+    - 功能：取消一个文件路径到文件的链接, `unlinkat标准接口 <https://linux.die.net/man/2/unlinkat>`_ 。
+    - 接口： ``int unlinkat(int dirfd, char* path, unsigned int flags)``
+    - 参数：
+        - dirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
+        - flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。
+        - path：文件路径。
+    - 说明：
+        - 需要注意 unlink 掉所有硬链接后彻底删除文件的情况。
+    - 返回值：如果出现了错误则返回 -1，否则返回 0。
+    - 可能的错误
+        - 文件不存在。
 
 **fstat**:
 
-    * syscall ID: 80
-    * 功能：获取文件状态。
-    * 接口： ``int fstat(int fd, struct Stat* st)``
-    * 参数：
-        * fd: 文件描述符
-        * st: 文件状态结构体
+    - syscall ID: 80
+    - 功能：获取文件状态。
+    - 接口： ``int fstat(int fd, struct Stat* st)``
+    - 参数：
+        - fd: 文件描述符
+        - st: 文件状态结构体
 
         .. code-block:: c
 
@@ -75,10 +75,10 @@ chapter6练习
             #define DIR 0x040000		// directory
             #define FILE 0x100000		// ordinary regular file
             
-    * 返回值：如果出现了错误则返回 -1，否则返回 0。
-    * 可能的错误
-      * fd 无效。
-      * st 地址非法。
+    - 返回值：如果出现了错误则返回 -1，否则返回 0。
+    - 可能的错误
+      - fd 无效。
+      - st 地址非法。
 
 正确实现后，你的 os 应该能够正确运行 ch6_file* 对应的测试用例，在 shell 中执行 ch6_usertest 来执行测试。
 
