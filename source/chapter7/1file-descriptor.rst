@@ -30,40 +30,8 @@
         char writable;
         struct pipe *pipe; // FD_PIPE
     };
+    
 
-    // 全局文件池
-    extern struct file filepool[128 * 16];
-
-可以看到一个文件在我们OS对应的结构体之中存储了其种类（本章目前只有管道，下一章会引入新的支持）。注意我们不认为 stdin、stdout、stderr 是真正的文件，而是直接和串口接在一起。所以虽然它们占有fd，但是没有给它们分配文件种类。大家可以通过分配给它们的fd值来区分是不是标准输入输出错误流。
-
-和内存池一样，文件我们也采用了比较简答的文件池写法。OS全局的文件数量是有上限的。
-
-文件的ref记录了其引用的次数。我们分配一个文件时，会遍历文件池寻找ref为0的文件来分配（注意这里只是OS分配，我们没有支持sys_open去打开在某个地址的文件的调用，它在lab7实现）。同理关闭文件就是减少其对应的ref值。
-
-.. code-block:: c
-
-    // os/file.c
-    struct file* filealloc() {
-        for(int i = 0; i < FILE_MAX; ++i) {
-            if(filepool[i].ref == 0) {
-                filepool[i].ref = 1;
-                return &filepool[i];
-            }
-        }
-        return 0;
-    }
-
-    void
-    fileclose(struct file *f)
-    {
-        if(--f->ref > 0) {
-            return;
-        }
-        if(f->type == FD_PIPE){
-            pipeclose(f->pipe, f->writable);
-        }
-        memset(f, 0, sizeof(struct file));
-    }
 
 
 pipe管道的实现
