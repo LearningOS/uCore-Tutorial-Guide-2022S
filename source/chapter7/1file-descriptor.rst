@@ -24,11 +24,13 @@
 
     // file.h
     struct file {
-        enum { FD_NONE = 0, FD_PIPE} type;  // FD_PIPE means this file is a  pipe.
-        int ref;           // reference count
-        char readable;     
-        char writable;
-        struct pipe *pipe; // FD_PIPE
+        enum { FD_NONE = 0, FD_PIPE, FD_INODE, FD_STDIO } type;
+	    int ref; // reference count
+	    char readable;
+	    char writable;
+	    struct pipe *pipe; // FD_PIPE
+	    struct inode *ip; // FD_INODE
+	    uint off;
     };
     
 
