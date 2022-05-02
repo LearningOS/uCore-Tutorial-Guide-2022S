@@ -634,17 +634,11 @@ kernelret:
 </div></blockquote>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="w"> </span><span class="c1">// Defines a file in memory that provides information about the current use of the file and the corresponding inode location</span>
 <span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-
 <span class="k">enum</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">FD_NONE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="n">FD_INODE</span><span class="p">,</span><span class="w"> </span><span class="n">FD_STDIO</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="n">type</span><span class="p">;</span><span class="w"></span>
-
 <span class="kt">int</span><span class="w"> </span><span class="n">ref</span><span class="p">;</span><span class="w"> </span><span class="c1">// reference count</span>
-
 <span class="kt">char</span><span class="w"> </span><span class="n">readable</span><span class="p">;</span><span class="w"></span>
-
 <span class="kt">char</span><span class="w"> </span><span class="n">writable</span><span class="p">;</span><span class="w"></span>
-
 <span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="n">ip</span><span class="p">;</span><span class="w"> </span><span class="c1">// FD_INODE</span>
-
 <span class="n">uint</span><span class="w"> </span><span class="n">off</span><span class="p">;</span><span class="w"></span>
 <span class="p">};</span><span class="w"></span>
 
@@ -652,61 +646,46 @@ kernelret:
 </pre></div>
 </div>
 <p>我们采用预分配的方式来对file进行分配，每一个需要使用的file都要与filepool中的某一个file完成绑定。file结构中，ref记录了其引用次数,type表示了文件的类型，在本章中我们主要使用FD_NONE和FD_INODE属性，其中FD_INODE表示file已经绑定了一个文件（可能是目录或普通文件），FD_NONE表示该file还没完成绑定，FD_STDIO用来做标准输入输出，这里不做讨论；readbale和writeble规定了进程对文件的读写权限；ip标识了file所对应的磁盘中的inode编号，off即文件指针，用作记录文件读写时的偏移量。</p>
-<p>分配文件时，我们从filepool中寻找还没有被分配的file进行分配：
-.. code-block:: c</p>
-<blockquote>
-<div><p>// os/file.c
-struct file* filealloc() {</p>
-<blockquote>
-<div><dl>
-<dt>for(int i = 0; i &lt; FILE_MAX; ++i) {</dt><dd><dl class="simple">
-<dt>if(filepool[i].ref == 0) {</dt><dd><p>filepool[i].ref = 1;
-return &amp;filepool[i];</p>
-</dd>
-</dl>
-<p>}</p>
-</dd>
-</dl>
-<p>}
-return 0;</p>
-</div></blockquote>
-<p>}</p>
-</div></blockquote>
-<p>进程关闭文件时，也要去filepool中放回：（注意需要根据ref来判断是否需要回收该file）
-.. code-block:: c</p>
-<blockquote>
-<div><p>void fileclose(struct file <a href="#id5"><span class="problematic" id="id6">*</span></a>f)
-{</p>
-<blockquote>
-<div><dl class="simple">
-<dt>if (f-&gt;ref &lt; 1)</dt><dd><p>panic(“fileclose”);</p>
-</dd>
-<dt>if (–f-&gt;ref &gt; 0) {</dt><dd><p>return;</p>
-</dd>
-</dl>
-<p>}
-switch (f-&gt;type) {
-case FD_STDIO:</p>
-<blockquote>
-<div><p>// Do nothing
-break;</p>
-</div></blockquote>
-<dl class="simple">
-<dt>case FD_INODE:</dt><dd><p>iput(f-&gt;ip);
-break;</p>
-</dd>
-<dt>default:</dt><dd><p>panic(“unknown file type %dn”, f-&gt;type);</p>
-</dd>
-</dl>
-<p>}</p>
-<p>f-&gt;off = 0;
-f-&gt;readable = 0;
-f-&gt;writable = 0;
-f-&gt;ref = 0;
-f-&gt;type = FD_NONE;</p>
-</div></blockquote>
-<p>}</p>
-</div></blockquote>
+<p>分配文件时，我们从filepool中寻找还没有被分配的file进行分配：</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// os/file.c</span>
+<span class="k">struct</span> <span class="nc">file</span><span class="o">*</span><span class="w"> </span><span class="n">filealloc</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">FILE_MAX</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">filepool</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">ref</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="n">filepool</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">ref</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="n">filepool</span><span class="p">[</span><span class="n">i</span><span class="p">];</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>进程关闭文件时，也要去filepool中放回：（注意需要根据ref来判断是否需要回收该file）</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">fileclose</span><span class="p">(</span><span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="o">*</span><span class="n">f</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">     </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">ref</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"></span>
+<span class="w">             </span><span class="n">panic</span><span class="p">(</span><span class="s">"fileclose"</span><span class="p">);</span><span class="w"></span>
+<span class="w">     </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">--</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">ref</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">             </span><span class="k">return</span><span class="p">;</span><span class="w"></span>
+<span class="w">     </span><span class="p">}</span><span class="w"></span>
+<span class="w">     </span><span class="k">switch</span><span class="w"> </span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">     </span><span class="k">case</span><span class="w"> </span><span class="nl">FD_STDIO</span><span class="p">:</span><span class="w"></span>
+<span class="w">             </span><span class="c1">// Do nothing</span>
+<span class="w">             </span><span class="k">break</span><span class="p">;</span><span class="w"></span>
+<span class="w">     </span><span class="k">case</span><span class="w"> </span><span class="nl">FD_INODE</span><span class="p">:</span><span class="w"></span>
+<span class="w">             </span><span class="n">iput</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">ip</span><span class="p">);</span><span class="w"></span>
+<span class="w">             </span><span class="k">break</span><span class="p">;</span><span class="w"></span>
+<span class="w">     </span><span class="k">default</span><span class="o">:</span><span class="w"></span>
+<span class="w">             </span><span class="n">panic</span><span class="p">(</span><span class="s">"unknown file type %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">);</span><span class="w"></span>
+<span class="w">     </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">     </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">off</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">     </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">readable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">     </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">writable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">     </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">ref</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">     </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FD_NONE</span><span class="p">;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
 <p>注意文件对于进程而言也是其需要记录的一种资源，因此我们在进程对应的PCB结构体之中也需要记录进程打开的文件信息。我们给PCB增加文件指针数组。</p>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// proc.h</span>
 <span class="c1">// Per-process state</span>
@@ -732,61 +711,10 @@ f-&gt;type = FD_NONE;</p>
 </div>
 <p>一个进程能打开的文件是有限的（我们设置为16）。一个进程如果要打开某一个文件，其文件指针数组必须有空位。如果有，就把下标做为文件的fd，并把指定文件指针存入数组之中。</p>
 </div>
-<div class="section" id="id7">
-<h2>获取文件对应的inode<a class="headerlink" href="#id7" title="永久链接至标题">¶</a></h2>
+<div class="section" id="id5">
+<h2>获取文件对应的inode<a class="headerlink" href="#id5" title="永久链接至标题">¶</a></h2>
 <p>现在我们回到文件-inode的关系上。我们怎么获取文件对应的inode呢？上文中提到了我们是去查file name对应inode的表来实现这个过程的。这个功能由目录来提供。我们看一下代码是如何实现这个过程的。</p>
-<p>首先用户程序要打开指定文件名文件，发起系统调用sys_openat:
-.. code-block:: c</p>
-<blockquote>
-<div><p>#define O_RDONLY  0x000     // 只读
-#define O_WRONLY  0x001     // 只写
-#define O_RDWR    0x002     // 可读可写
-#define O_CREATE  0x200 　　//　如果不存在，创建
-#define O_TRUNC   0x400 　　// 舍弃原有内容，从头开始写</p>
-<dl class="simple">
-<dt>uint64 sys_openat(uint64 va, uint64 omode, uint64 _flags) {</dt><dd><p>// 还记得flags的定义吗？看看上面。
-struct proc <a href="#id8"><span class="problematic" id="id9">*</span></a>p = curr_proc();
-char path[200];
-copyinstr(p-&gt;pagetable, path, va, 200);
-return fileopen(path, omode);</p>
-</dd>
-</dl>
-<p>}</p>
-<dl>
-<dt>int fileopen(char <a href="#id10"><span class="problematic" id="id11">*</span></a>path, uint64 omode) {</dt><dd><p>int fd;
-struct file <a href="#id12"><span class="problematic" id="id13">*</span></a>f;
-struct inode <a href="#id14"><span class="problematic" id="id15">*</span></a>ip;
-if (omode &amp; O_CREATE) {</p>
-<blockquote>
-<div><p>// 新常见一个路径为 path 的文件
-ip = create(path, T_FILE);</p>
-</div></blockquote>
-<dl class="simple">
-<dt>} else {</dt><dd><p>// 尝试寻找一个路径为 path 的文件
-ip = namei(path);
-ivalid(ip);</p>
-</dd>
-</dl>
-<p>}
-// 还记得吗？从全局文件池和进程 fd 池中找一个空闲的出来，参考 lab6
-f = filealloc();
-fd = fdalloc(f);
-// 初始化
-f-&gt;type = FD_INODE;
-f-&gt;off = 0;
-f-&gt;ip = ip;
-f-&gt;readable = !(omode &amp; O_WRONLY);
-f-&gt;writable = (omode &amp; O_WRONLY) || (omode &amp; O_RDWR);
-if ((omode &amp; O_TRUNC) &amp;&amp; ip-&gt;type == T_FILE) {</p>
-<blockquote>
-<div><p>itrunc(ip);</p>
-</div></blockquote>
-<p>}
-return fd;</p>
-</dd>
-</dl>
-<p>}</p>
-</div></blockquote>
+<p>首先用户程序要打开指定文件名文件，发起系统调用sys_openat:</p>
 <p>打开文件的方式根据flags有很多种。我们先来看最简单的，就是打开已经存在的文件的方法。fileopen在处理这类打开时调用了namei这个函数。</p>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// namei = 获得根目录，然后在其中遍历查找 path</span>
 <span class="k">struct</span> <span class="nc">inode</span><span class="w"> </span><span class="o">*</span><span class="n">namei</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">path</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -886,8 +814,8 @@ return fd;</p>
 </div>
 <p>ialloc 干的事情：遍历 inode blocks 找到一个空闲的inode，初始化并返回。dirlink对于本章的练习也十分重要。和dirlookup不同，我们没有现成的dirent存储在磁盘上，而是要在磁盘上创建一个新的dirent。他遍历根目录数据块，找到一个空的 dirent，设置 dirent = {inum, filename} 然后返回，注意这一步可能找不到空位，这时需要找一个新的数据块，并扩大 root_dir size，这是由　bmap 自动完成的。需要注意本章创建硬链接时对应inode num的处理。</p>
 </div>
-<div class="section" id="id16">
-<h2>文件关闭<a class="headerlink" href="#id16" title="永久链接至标题">¶</a></h2>
+<div class="section" id="id6">
+<h2>文件关闭<a class="headerlink" href="#id6" title="永久链接至标题">¶</a></h2>
 <p>文件读写结束后需要fclose释放掉其inode，同时释放OS中对应的file结构体和fd。其实 inode 文件的关闭只需要调用 iput 就好了，iput 的实现简单到让人感觉迷惑，就是 inode 引用计数减一。诶？为什么没有计数为 0 就写回然后释放 inode 的操作？和 buf 的释放同理，这里会等 inode 池满了之后自行被替换出去，重新读磁盘实在太太太太慢了。对了，千万记得 iput 和 iget 数量相同，一定要一一对应，否则你懂的。</p>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"></span>
 <span class="nf">fileclose</span><span class="p">(</span><span class="k">struct</span> <span class="nc">file</span><span class="w"> </span><span class="o">*</span><span class="n">f</span><span class="p">)</span><span class="w"></span>
@@ -978,8 +906,8 @@ return fd;</p>
 <li><a class="reference internal" href="#id3">磁盘块缓存</a></li>
 <li><a class="reference internal" href="#inode">inode的操作</a></li>
 <li><a class="reference internal" href="#id4">文件在进程中的结构</a></li>
-<li><a class="reference internal" href="#id7">获取文件对应的inode</a></li>
-<li><a class="reference internal" href="#id16">文件关闭</a></li>
+<li><a class="reference internal" href="#id5">获取文件对应的inode</a></li>
+<li><a class="reference internal" href="#id6">文件关闭</a></li>
 </ul>
 </li>
 </ul>

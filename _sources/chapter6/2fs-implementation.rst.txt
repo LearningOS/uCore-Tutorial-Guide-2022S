@@ -406,17 +406,11 @@ balloc(位于nfs/fs.c)会分配一个新的buf缓存。而iupdate函数则是把
 
      // Defines a file in memory that provides information about the current use of the file and the corresponding inode location
     struct file {
-
     enum { FD_NONE = 0,FD_INODE, FD_STDIO } type;
-
     int ref; // reference count
-
     char readable; 
-
     char writable;
-
     struct inode *ip; // FD_INODE
-
     uint off;
     };
 
@@ -424,6 +418,7 @@ balloc(位于nfs/fs.c)会分配一个新的buf缓存。而iupdate函数则是把
 我们采用预分配的方式来对file进行分配，每一个需要使用的file都要与filepool中的某一个file完成绑定。file结构中，ref记录了其引用次数,type表示了文件的类型，在本章中我们主要使用FD_NONE和FD_INODE属性，其中FD_INODE表示file已经绑定了一个文件（可能是目录或普通文件），FD_NONE表示该file还没完成绑定，FD_STDIO用来做标准输入输出，这里不做讨论；readbale和writeble规定了进程对文件的读写权限；ip标识了file所对应的磁盘中的inode编号，off即文件指针，用作记录文件读写时的偏移量。
 
 分配文件时，我们从filepool中寻找还没有被分配的file进行分配：
+
 .. code-block:: c
 
     // os/file.c
@@ -438,6 +433,7 @@ balloc(位于nfs/fs.c)会分配一个新的buf缓存。而iupdate函数则是把
     }
 
 进程关闭文件时，也要去filepool中放回：（注意需要根据ref来判断是否需要回收该file）
+
 .. code-block:: c
 
    void fileclose(struct file *f)
@@ -498,6 +494,7 @@ balloc(位于nfs/fs.c)会分配一个新的buf缓存。而iupdate函数则是把
 现在我们回到文件-inode的关系上。我们怎么获取文件对应的inode呢？上文中提到了我们是去查file name对应inode的表来实现这个过程的。这个功能由目录来提供。我们看一下代码是如何实现这个过程的。
 
 首先用户程序要打开指定文件名文件，发起系统调用sys_openat:
+
 .. code-block:: c
     #define O_RDONLY  0x000     // 只读
     #define O_WRONLY  0x001     // 只写
