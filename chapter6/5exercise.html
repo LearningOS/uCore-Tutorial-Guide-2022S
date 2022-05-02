@@ -222,7 +222,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../chapter7/0intro.html">引言</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../chapter7/1file-descriptor.html">文件系统扩充</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../chapter7/2pipe.html">进程通讯与 fork</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../chapter7/3exercise.html">chapter6练习</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chapter7/3exercise.html">chapter7练习</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../chapter8/index.html">第八章：并发</a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -377,12 +377,13 @@
 <div class="section" id="id5">
 <h2>问答作业<a class="headerlink" href="#id5" title="永久链接至标题">¶</a></h2>
 <ol class="arabic simple">
-<li><p>目前的文件系统只有单级目录，假设想要支持多级文件目录，请描述你设想的实现方式，描述合理即可。</p></li>
-<li><p>在有了多级目录之后，我们就也可以为一个目录增加硬链接了。在这种情况下，文件树中是否可能出现环路(软硬链接都可以，鼓励多尝试)？你认为应该如何解决？请在你喜欢的系统上实现一个环路，描述你的实现方式以及系统提示、实际测试结果。</p></li>
+<li><p>在我们的文件系统中，root inode起着什么作用？如果root inode中的内容损坏了，会发生什么？</p></li>
 </ol>
 </div>
 <div class="section" id="id6">
 <h2>报告要求<a class="headerlink" href="#id6" title="永久链接至标题">¶</a></h2>
+<p>注意目录要求，报告命名 <code class="docutils literal notranslate"><span class="pre">lab4.md</span></code> 或 <code class="docutils literal notranslate"><span class="pre">lab4.pdf</span></code>，位于 <code class="docutils literal notranslate"><span class="pre">reports</span></code> 目录下。 后续实验同理。</p>
+<p>报告内容：</p>
 <ul class="simple">
 <li><p>注明姓名学号。</p></li>
 <li><p>简单总结本次实验你新添加的代码。</p></li>

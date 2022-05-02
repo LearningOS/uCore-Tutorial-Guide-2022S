@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="第八章：并发" href="../chapter8/index.html" /><link rel="prev" title="进程通讯与 fork" href="2pipe.html" />
 
     <meta name="generator" content="sphinx-4.1.2, furo 2021.08.31"/>
-        <title>chapter6练习 - uCore-Tutorial-Guide-2022S 0.1 文档</title>
+        <title>chapter7练习 - uCore-Tutorial-Guide-2022S 0.1 文档</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=c7c65a82b42f6b978e58466c1e9ef2509836d916" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=16fb25fabf47304eee183a5e9af80b1ba98259b1" />
@@ -222,7 +222,7 @@
 <li class="toctree-l2"><a class="reference internal" href="0intro.html">引言</a></li>
 <li class="toctree-l2"><a class="reference internal" href="1file-descriptor.html">文件系统扩充</a></li>
 <li class="toctree-l2"><a class="reference internal" href="2pipe.html">进程通讯与 fork</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">chapter6练习</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">chapter7练习</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../chapter8/index.html">第八章：并发</a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -263,193 +263,14 @@
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
-        <div class="section" id="chapter6">
-<h1>chapter6练习<a class="headerlink" href="#chapter6" title="永久链接至标题">¶</a></h1>
-<ul class="simple">
-<li><p>本节难度： <strong>大魔王！！</strong></p></li>
-</ul>
+        <div class="section" id="chapter7">
+<h1>chapter7练习<a class="headerlink" href="#chapter7" title="永久链接至标题">¶</a></h1>
 <div class="section" id="id1">
-<h2>本章任务<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">ch6b_usertest</span></code> <code class="docutils literal notranslate"><span class="pre">ch6_mergetest</span></code></p></li>
-<li><p>结合代码、指导书已经课堂所学，理解文件系统的几个概念：全局文件表 / 进程文件描述符等</p></li>
-<li><p>完成本章编程作业。</p></li>
-<li><p>最终，完成实验报告并 push 你的 ch6 分支到远程仓库。</p></li>
-</ul>
+<h2>编程作业<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
+<p>本章没有编程作业</p>
 </div>
 <div class="section" id="id2">
-<h2>编程作业<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
-<div class="section" id="id3">
-<h3>进程通信：邮箱<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h3>
-<p>这一章我们实现了基于 pipe 的进程间通信，但是看测例就知道了，管道不太自由，我们来实现一套乍一看更靠谱的通信 syscall吧！本节要求实现邮箱机制，以及对应的 syscall。</p>
-<ul class="simple">
-<li><p>邮箱说明：每个进程拥有唯一一个邮箱，基于“数据报”收发字节信息，利用环形buffer存储，读写顺序为 FIFO，不记录来源进程。每次读写单位必须为一个报文，如果用于接收的缓冲区长度不够，舍弃超出的部分（截断报文）。为了简单，邮箱中最多拥有16条报文，每条报文最大长度256字节。当邮箱满时，发送邮件（也就是写邮箱会失败）。不考虑读写邮箱的权限，也就是所有进程都能够随意给其他进程的邮箱发报。</p></li>
-</ul>
-<p><strong>mailread</strong>:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>syscall ID：401</p></li>
-<li><p>C接口： <code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">mailread(void*</span> <span class="pre">buf,</span> <span class="pre">int</span> <span class="pre">len)</span></code></p></li>
-<li><p>功能：读取一个报文，如果成功返回报文长度.</p></li>
-<li><dl class="simple">
-<dt>参数：</dt><dd><ul>
-<li><p>buf: 缓冲区头。</p></li>
-<li><p>len：缓冲区长度。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>说明：</dt><dd><ul>
-<li><p>len &gt; 256 按 256 处理，len &lt; 队首报文长度且不为0，则截断报文。</p></li>
-<li><p>len = 0，则不进行读取，如果没有报文读取，返回-1，否则返回0，这是用来测试是否有报文可读。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>可能的错误：</dt><dd><ul>
-<li><p>邮箱空。</p></li>
-<li><p>buf 无效。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-</ul>
-</div></blockquote>
-<p><strong>mailwrite</strong>:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>syscall ID：402</p></li>
-<li><p>C接口： <code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">mailwrite(int</span> <span class="pre">pid,</span> <span class="pre">void*</span> <span class="pre">buf,</span> <span class="pre">int</span> <span class="pre">len)</span></code></p></li>
-<li><p>功能：向对应进程邮箱插入一条报文.</p></li>
-<li><dl class="simple">
-<dt>参数：</dt><dd><ul>
-<li><p>pid: 目标进程id。</p></li>
-<li><p>buf: 缓冲区头。</p></li>
-<li><p>len：缓冲区长度。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>说明：</dt><dd><ul>
-<li><p>len &gt; 256 按 256 处理，</p></li>
-<li><p>len = 0，则不进行写入，如果邮箱满，返回-1，否则返回0，这是用来测试是否可以发报。</p></li>
-<li><p>可以向自己的邮箱写入报文。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>可能的错误：</dt><dd><ul>
-<li><p>邮箱满。</p></li>
-<li><p>buf 无效。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-</ul>
-</div></blockquote>
-<p>实现完成之后，你应该能通过 ch6_mail* 对应的所有测例，在 shell 中执行 ch6_usertest 来执行所有测试。</p>
-<p>tips:</p>
-<ul class="simple">
-<li><p>给每个进程默认分配一个邮箱即可。</p></li>
-<li><p>邮箱的具体实现就是一个 ring buffer。</p></li>
-</ul>
-</div>
-<div class="section" id="id4">
-<h3>[挑战，不占分]进程通信：共享内存<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h3>
-<p>如果你认为邮箱不够炫酷，可以试试这个。挑战内容，不占分，但你还是必须先实现 mail。</p>
-<p>进程间通信(IPC)对于某些系统和应用其实十分重要，它被称为微内核的 Achilles tendon，同时在 android 应用中也十分常见，为此 android 系统专门设计了一套 binder 机制来加速 IPC 的效率。</p>
-<p>最基础的 IPC 方式大致分两类：</p>
-<ul class="simple">
-<li><p>内核拷贝：指通过内核完成数据的拷贝，比如 pipe，邮箱。</p></li>
-<li><p>共享内存：直接将同一段物理内存映射到不同进程的虚存空间。</p></li>
-</ul>
-<p>其中内核拷贝的方式一般效率较低，但安全可靠，容易同步。而共享内存的方式不需要内核参与，速度较快，但需要用户态自己想办法同步，同时可能会导致某些攻击，感兴趣的同学可以参考 <a class="reference external" href="https://en.wikipedia.org/wiki/TOCTTOU">TOCTTOU</a> 。</p>
-<p>框架实现的 pipe 属于第一类，那么现在我们来实现第二类。实现 share memory 的方法不止一种，这里我们拓展 ch4 实现的 mmap 的功能，利用 mmap 来实现共享内存。</p>
-<p>mmap 系统调用新定义：</p>
-<ul class="simple">
-<li><p>syscall ID: 222</p></li>
-<li><p>接口：<code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">mmap(void*</span> <span class="pre">start,</span> <span class="pre">unsigned</span> <span class="pre">long</span> <span class="pre">long</span> <span class="pre">len,</span> <span class="pre">int</span> <span class="pre">port,</span> <span class="pre">int</span> <span class="pre">flag,</span> <span class="pre">int</span> <span class="pre">shmem_id)</span></code></p></li>
-<li><p>功能：当 flag 等于 0 时，功能与 ch4 时一致；当 flag = 1 时，视为申请共享内存（可类比 posix 接口的 MAP_SHARED 标志），这时需要根据 shmem_id 将对应的物理内存映射到 start 开始的虚存，内存页的属性为 prot。若此时 shmem_id 为 -1 时，视为需要申请一段新的物理内存作为共享内存使用; 若 shmem_id != -1，视作申请对应 id 的共享内存。</p></li>
-<li><dl class="simple">
-<dt>参数：</dt><dd><ul>
-<li><p>start：需要映射的虚存起始地址。</p></li>
-<li><p>len：映射字节长度，可以为 0 （如果是则直接返回），不可过大 (上限 1GiB )。</p></li>
-<li><p>port：第 0 位表示是否可读，第 1 位表示是否可写，第 2 位表示是否可执行。其他位无效（必须为 0 ）。</p></li>
-<li><p>flag：申请内存的模式，为 0 时为申请物理内存，为 1 时为申请共享内存，其他值视作错误。</p></li>
-<li><p>shmem_id：申请共享内存时使用，表示内核记录的一段共享内存的 id，该 id 全内核唯一（注意和 fd 的区别，fd 是 process 的属性, shmem_id 是全内核的属性）。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>返回值:</dt><dd><ul>
-<li><p>若发生错误，返回 -1。</p></li>
-<li><p>若 flag == 0，返回值同 ch4。</p></li>
-<li><p>若 flag == 1，总返回映射的 shmem_id。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>说明：</dt><dd><ul>
-<li><p>我们尚未有完整文件系统，所以这只是一个看上去像 posix 的 mmap 但实际不是的系统调用。</p></li>
-<li><p>我们不定义共享内存与 fork 的相互作用，不会加以测试，任何实现都可以。</p></li>
-<li><p>允许同一个进程将同一块共享内存映射到自己的不同虚存。</p></li>
-<li><p>为了简单，addr 要求按页对齐(否则报错)，len 可直接按页上取整。</p></li>
-<li><p>为了简单，不考虑发生错误时的页回收（也就是内存泄漏）。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>错误：</dt><dd><ul>
-<li><p>[addr, addr + len) 存在已经被映射的页。</p></li>
-<li><p>物理内存不足。</p></li>
-<li><p>port &amp; !0x7 != 0 (port 其余位必须为0)。</p></li>
-<li><p>port &amp; 0x7 = 0 (这样的内存无意义)。</p></li>
-<li><p>flag &amp; ~0x1 != 0 (flag 应为 0 或 1)</p></li>
-<li><p>shmem_id 无效。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-</ul>
-<p>munmap 系统调用定义：</p>
-<ul class="simple">
-<li><p>syscall ID：215</p></li>
-<li><p>C接口： <code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">munmap(void*</span> <span class="pre">start,</span> <span class="pre">unsigned</span> <span class="pre">long</span> <span class="pre">long</span> <span class="pre">len)</span></code></p></li>
-<li><p>Rust接口： <code class="docutils literal notranslate"><span class="pre">fn</span> <span class="pre">munmap(start:</span> <span class="pre">usize,</span> <span class="pre">len:</span> <span class="pre">usize)</span> <span class="pre">-&gt;</span> <span class="pre">i32</span></code></p></li>
-<li><p>功能：取消一块虚存的映射。</p></li>
-<li><p>参数：同 mmap</p></li>
-<li><dl class="simple">
-<dt>说明：</dt><dd><ul>
-<li><p>为了简单，参数错误时不考虑内存的恢复和回收。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>错误：</dt><dd><ul>
-<li><p>[start, start + len) 中存在未被映射的虚存。</p></li>
-</ul>
-</dd>
-</dl>
-</li>
-</ul>
-<p>正确实现后，你的 os 应该能够正确运行 ch6_shmem* 对应的一些测试用例，在 shell 中执行 ch6_usertest1 来执行测试。</p>
-<p>tips:</p>
-<ul class="simple">
-<li><p>QAQ，shmem 的企划被老师以太难为由毙掉了，所以就成了 challange…</p></li>
-<li><p>难受啊，这个唯一一个测例和参考实现都写好了的 challange …</p></li>
-</ul>
-</div>
-</div>
-<div class="section" id="id5">
-<h2>问答作业<a class="headerlink" href="#id5" title="永久链接至标题">¶</a></h2>
+<h2>问答作业<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
 <ol class="arabic simple">
 <li><p>举出使用 pipe 的一个实际应用的例子。</p></li>
 </ol>
@@ -458,39 +279,18 @@
 <li><p>想想你平时咋使用 linux terminal 的？</p></li>
 <li><p>如何使用 cat 和 wc 完成一个文件的行数统计？</p></li>
 </ul>
-<ol class="arabic" start="2">
-<li><p>共享内存的测例中有如下C语言片段(伪代码)：</p>
-<blockquote>
-<div><div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"></span>
-<span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="n">uint64</span><span class="w"> </span><span class="o">*</span><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="mh">0x10000000</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="n">uint64</span><span class="w"> </span><span class="o">*</span><span class="n">B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)(</span><span class="mh">0x10000000</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mh">0x1000</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="n">uint64</span><span class="w"> </span><span class="n">len</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x1000</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="n">make_shmem</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="p">);</span><span class="w"> </span><span class="c1">// 会将 [A, A + len) [B, B + len) 这两段虚存映射到同一段物理内存</span>
-<span class="w">    </span><span class="o">*</span><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xabab</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="n">__sync_synchronize</span><span class="p">();</span><span class="w">  </span><span class="c1">// zssm？</span>
-<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="o">*</span><span class="n">B</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mh">0xabab</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">ERROR</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"OK!"</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
-<p>请自己查阅注释 <code class="docutils literal notranslate"><span class="pre">zssm?</span></code> 对应的这一行代码有什么作用？如果去掉有可能会导致什么错误？为什么？</p>
-</div></blockquote>
-</li>
+<ol class="arabic simple" start="2">
+<li><p>如果需要在多个进程间互相通信，则需要为每一对进程建立一个管道，非常繁琐，请设计一个更易用的多进程通信机制。</p></li>
 </ol>
 </div>
-<div class="section" id="id6">
-<h2>报告要求<a class="headerlink" href="#id6" title="永久链接至标题">¶</a></h2>
-<p>注意目录要求，报告命名 <code class="docutils literal notranslate"><span class="pre">lab4.pdf</span></code>，位于 <code class="docutils literal notranslate"><span class="pre">reports</span></code> 目录下。 后续实验同理。</p>
+<div class="section" id="id3">
+<h2>报告要求<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h2>
+<p>注意本节问答题请和 ch6 一并完成，并一同交到 ch6 分支的 <code class="docutils literal notranslate"><span class="pre">lab4.md</span></code> 或 <code class="docutils literal notranslate"><span class="pre">lab4.pdf</span></code>。</p>
 <p>报告内容：</p>
 <ul class="simple">
 <li><p>注明姓名学号。</p></li>
-<li><p>简单总结本次实验你新添加的代码。</p></li>
-<li><p>完成 ch6 问答作业。</p></li>
-<li><p>[可选，不占分]你对本次实验设计及难度的看法。</p></li>
+<li><p>完成 ch7 问答作业。</p></li>
+<li><p>(optional) 你对本次实验设计及难度的看法。</p></li>
 </ul>
 </div>
 </div>
@@ -549,15 +349,10 @@
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">chapter6练习</a><ul>
-<li><a class="reference internal" href="#id1">本章任务</a></li>
-<li><a class="reference internal" href="#id2">编程作业</a><ul>
-<li><a class="reference internal" href="#id3">进程通信：邮箱</a></li>
-<li><a class="reference internal" href="#id4">[挑战，不占分]进程通信：共享内存</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#id5">问答作业</a></li>
-<li><a class="reference internal" href="#id6">报告要求</a></li>
+<li><a class="reference internal" href="#">chapter7练习</a><ul>
+<li><a class="reference internal" href="#id1">编程作业</a></li>
+<li><a class="reference internal" href="#id2">问答作业</a></li>
+<li><a class="reference internal" href="#id3">报告要求</a></li>
 </ul>
 </li>
 </ul>
