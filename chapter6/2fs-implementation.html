@@ -824,9 +824,8 @@ kernelret:
 <span class="w">        </span><span class="k">return</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="w">    </span><span class="c1">// 暂时不支持标准输入输出文件的关闭</span>
-<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">FD_PIPE</span><span class="p">){</span><span class="w"></span>
-<span class="w">        </span><span class="n">pipeclose</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">pipe</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="o">-&gt;</span><span class="n">writable</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">FD_INODE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+
+<span class="w">   </span><span class="k">if</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">FD_INODE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="n">iput</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">ip</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 

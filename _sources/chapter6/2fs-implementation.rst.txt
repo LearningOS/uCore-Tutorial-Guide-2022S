@@ -656,9 +656,8 @@ ialloc 干的事情：遍历 inode blocks 找到一个空闲的inode，初始化
             return;
         }
         // 暂时不支持标准输入输出文件的关闭
-        if(f->type == FD_PIPE){
-            pipeclose(f->pipe, f->writable);
-        } else if(f->type == FD_INODE) {
+        
+       if(f->type == FD_INODE) {
             iput(f->ip);
         }
 
