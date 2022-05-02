@@ -267,7 +267,8 @@
 <h1>进程通讯与 fork<a class="headerlink" href="#fork" title="永久链接至标题">¶</a></h1>
 <div class="section" id="id1">
 <h2>fork的修改<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
-<p>fork 为什么是毒瘤呢？因为你总是要在新增加一个东西以后考虑要不要为新功能增加 fork 支持。这一章的文件就是第一个例子，那么在 fork 语境下，子进程也需要继承父进程的文件资源，也就是PCB之中的指针文件数组。我们应该如何处理呢？我们来看看 fork 在这一个 chapter 的实现：</p>
+<p>对fork的文件支持本来应该在chapter6引入，但是为了更好的理解管道的继承机制，我们把它放在了这个章节。
+fork 为什么是毒瘤呢？因为你总是要在新增加一个东西以后考虑要不要为新功能增加 fork 支持。这一章的文件就是第一个例子，那么在 fork 语境下，子进程也需要继承父进程的文件资源，也就是PCB之中的指针文件数组。我们应该如何处理呢？我们来看看 fork 在这一个 chapter 的实现：</p>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">fork</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="c1">// ...</span>
 <span class="o">+</span><span class="w">   </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">FD_MAX</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"></span>
