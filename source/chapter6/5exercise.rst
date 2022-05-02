@@ -24,61 +24,59 @@ chapter6练习
 **linkat**：
  
 - syscall ID: 37
-    -功能：创建一个文件的一个硬链接， `linkat标准接口 <https://linux.die.net/man/2/linkat>`_ 。
-    - 接口： ``int linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, unsigned int flags)``
-    - 参数：
-        - olddirfd，newdirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
-        - flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。
-        - oldpath：原有文件路径
-        - newpath: 新的链接文件路径。
-    - 说明：
-       - 为了方便，不考虑新文件路径已经存在的情况（属于未定义行为），除非链接同名文件。
-       - 返回值：如果出现了错误则返回 -1，否则返回 0。
-    - 可能的错误
-       - 链接同名文件。
+- 功能：创建一个文件的一个硬链接， `linkat标准接口 <https://linux.die.net/man/2/linkat>`_ 。
+- 接口： ``int linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, unsigned int flags)``
+- 参数：
+   - olddirfd，newdirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
+   - flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。
+   - oldpath：原有文件路径
+   - newpath: 新的链接文件路径。
+- 说明：
+    - 为了方便，不考虑新文件路径已经存在的情况（属于未定义行为），除非链接同名文件。
+    - 返回值：如果出现了错误则返回 -1，否则返回 0。
+- 可能的错误
+    - 链接同名文件。
 
 **unlinkat**:
 
-    - syscall ID: 35
-    - 功能：取消一个文件路径到文件的链接, `unlinkat标准接口 <https://linux.die.net/man/2/unlinkat>`_ 。
-    - 接口： ``int unlinkat(int dirfd, char* path, unsigned int flags)``
-    - 参数：
-        - dirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
-        - flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。
-        - path：文件路径。
-    - 说明：
-        - 需要注意 unlink 掉所有硬链接后彻底删除文件的情况。
-    - 返回值：如果出现了错误则返回 -1，否则返回 0。
-    - 可能的错误
-        - 文件不存在。
+- syscall ID: 35
+- 功能：取消一个文件路径到文件的链接, `unlinkat标准接口 <https://linux.die.net/man/2/unlinkat>`_ 。
+- 接口： ``int unlinkat(int dirfd, char* path, unsigned int flags)``
+- 参数：
+    - dirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
+    - flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。
+    - path：文件路径。
+- 说明：
+    - 需要注意 unlink 掉所有硬链接后彻底删除文件的情况。
+- 返回值：如果出现了错误则返回 -1，否则返回 0。
+- 可能的错误
+    - 文件不存在。
 
 **fstat**:
 
-    - syscall ID: 80
-    - 功能：获取文件状态。
-    - 接口： ``int fstat(int fd, struct Stat* st)``
-    - 参数：
-        - fd: 文件描述符
-        - st: 文件状态结构体
+- syscall ID: 80
+- 功能：获取文件状态。
+- 接口： ``int fstat(int fd, struct Stat* st)``
+- 参数：
+    - fd: 文件描述符
+    - st: 文件状态结构体
+    .. code-block:: c
+        struct Stat {
+            uint64 dev,     // 文件所在磁盘驱动号，该实现写死为 0 即可。
+            uint64 ino,     // inode 文件所在 inode 编号
+            uint32 mode,    // 文件类型
+            uint32 nlink,   // 硬链接数量，初始为1
+            uint64 pad[7],  // 无需考虑，为了兼容性设计
+        }
 
-        .. code-block:: c
-
-            struct Stat {
-                uint64 dev,     // 文件所在磁盘驱动号，该实现写死为 0 即可。
-                uint64 ino,     // inode 文件所在 inode 编号
-                uint32 mode,    // 文件类型
-                uint32 nlink,   // 硬链接数量，初始为1
-                uint64 pad[7],  // 无需考虑，为了兼容性设计
-            }
-      
-            // 文件类型只需要考虑:
-            #define DIR 0x040000		// directory
-            #define FILE 0x100000		// ordinary regular file
-            
-    - 返回值：如果出现了错误则返回 -1，否则返回 0。
-    - 可能的错误
-      - fd 无效。
-      - st 地址非法。
+        // 文件类型只需要考虑:
+        #define DIR 0x040000		// directory
+        #define FILE 0x100000		// ordinary regular file
+        
+- 返回值：如果出现了错误则返回 -1，否则返回 0。
+- 可能的错误
+- fd 无效。
+- st 地址非法。
 
 正确实现后，你的 os 应该能够正确运行 ch6_file* 对应的测试用例，在 shell 中执行 ch6_usertest 来执行测试。
 
@@ -86,20 +84,22 @@ Tips
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 - 需要给 inode 和 dinode 都增加 link 的计数，但强烈建议不要改变整个数据结构的大小，事实上，推荐你修改一个 pad。
-- os 和 nfs 的修改需要同步，只不过 nfs 比较简单，只需要初始化 link 计数为 1 就行（可以通过修改 ``ialloc``来实现）。
-- unlink 有删除文件的语义，如果 link 计数为 0，需要删除 inode 和对应的数据块，但我们暂时没有设置相关的测试，请在报告中用描述实现方法。
-- 理论上讲，想要测试文件系统的属性需要重启机器，但我们没有这样做。一方面是为了测试的方便，另一方面也留了一条后路。。。。。。。。。
+- os 和 nfs 的修改需要同步，只不过 nfs 比较简单，只需要初始化 link 计数为 1 就行（可以通过修改 ``ialloc`` 来实现）。
+- unlink 有删除文件的语义，如果 link 计数为 0，需要删除 inode 和对应的数据块，为此你需要正确调用 ``ivalid`` 、 ``iupdate`` 、 ``iput`` （如果测试遇到bug了不妨再看看这句话），并取消 ``iput`` 中判断条件的注释。你可能需要修改 ``iput`` 注释中的变量名（如果你的计数变量不叫 nlink）。
 
 
 问答作业
 ----------------------------------------------------------
 
-1. 目前的文件系统只有单级目录，假设想要支持多级文件目录，请描述你设想的实现方式，描述合理即可。
-
-2. 在有了多级目录之后，我们就也可以为一个目录增加硬链接了。在这种情况下，文件树中是否可能出现环路(软硬链接都可以，鼓励多尝试)？你认为应该如何解决？请在你喜欢的系统上实现一个环路，描述你的实现方式以及系统提示、实际测试结果。
+1. 在我们的文件系统中，root inode起着什么作用？如果root inode中的内容损坏了，会发生什么？
 
 报告要求
 -----------------------------------------------------------
+
+注意目录要求，报告命名 ``lab4.md`` 或 ``lab4.pdf``，位于 ``reports`` 目录下。 后续实验同理。
+
+报告内容：
+
 - 注明姓名学号。
 - 简单总结本次实验你新添加的代码。
 * 完成 ch6 问答问题
