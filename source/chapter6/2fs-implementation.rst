@@ -238,6 +238,8 @@ virtio_disk_intr() 会把 buf->disk 置零，这样中断返回后死循环条�
 
 此外，brelse 的数量必须和 bget 相同，因为 bget 会是的引用计数加一。如果没有相匹配的 brelse，就好比 new 了之后没有 delete。千万注意。
 
+
+
 inode的操作
 ---------------------------------------
 
@@ -395,10 +397,104 @@ balloc(位于nfs/fs.c)会分配一个新的buf缓存。而iupdate函数则是把
         brelse(bp);
     }
 
+文件在进程中的结构
+---------------------------------------
+ inode是由操作系统统一控制的dinode在内存中的映射，但是每个进程在具体使用文件的时候，除了需要考虑使用的是哪个inode对应的文件外，还需要根据对文件的使用情况来记录其它特性，因此，在进程中我们使用file结构体来标识一个被进程使用的文件：
+
+.. code-block:: c
+
+
+     // Defines a file in memory that provides information about the current use of the file and the corresponding inode location
+    struct file {
+
+    enum { FD_NONE = 0,FD_INODE, FD_STDIO } type;
+
+    int ref; // reference count
+
+    char readable; 
+
+    char writable;
+
+    struct inode *ip; // FD_INODE
+
+    uint off;
+    };
+
+    struct file filepool[FILEPOOLSIZE]; 
+我们采用预分配的方式来对file进行分配，每一个需要使用的file都要与filepool中的某一个file完成绑定。file结构中，ref记录了其引用次数,type表示了文件的类型，在本章中我们主要使用FD_NONE和FD_INODE属性，其中FD_INODE表示file已经绑定了一个文件（可能是目录或普通文件），FD_NONE表示该file还没完成绑定，FD_STDIO用来做标准输入输出，这里不做讨论；readbale和writeble规定了进程对文件的读写权限；ip标识了file所对应的磁盘中的inode编号，off即文件指针，用作记录文件读写时的偏移量。
+
+分配文件时，我们从filepool中寻找还没有被分配的file进行分配：
+.. code-block:: c
+
+    // os/file.c
+    struct file* filealloc() {
+        for(int i = 0; i < FILE_MAX; ++i) {
+            if(filepool[i].ref == 0) {
+                filepool[i].ref = 1;
+                return &filepool[i];
+            }
+        }
+        return 0;
+    }
+
+进程关闭文件时，也要去filepool中放回：（注意需要根据ref来判断是否需要回收该file）
+.. code-block:: c
+
+   void fileclose(struct file *f)
+   {
+	if (f->ref < 1)
+		panic("fileclose");
+	if (--f->ref > 0) {    
+		return;
+	}
+	switch (f->type) {
+	case FD_STDIO:
+		// Do nothing
+		break;
+	case FD_INODE:
+		iput(f->ip);
+		break;
+	default:
+		panic("unknown file type %d\n", f->type);
+	}
+
+	f->off = 0;
+	f->readable = 0;
+	f->writable = 0;
+	f->ref = 0;
+	f->type = FD_NONE;
+   }
+
+注意文件对于进程而言也是其需要记录的一种资源，因此我们在进程对应的PCB结构体之中也需要记录进程打开的文件信息。我们给PCB增加文件指针数组。
+
+.. code-block:: c
+
+    // proc.h
+    // Per-process state
+    struct proc {
+        // ...
+
+    +   struct file* files[16];
+    };
+
+    // os/proc.c
+    int fdalloc(struct file* f) {
+        struct proc* p = curr_proc();
+        // fd = 0,1,2 is reserved for stdio/stdout/stderr
+        for(int i = 3; i < FD_MAX; ++i) {
+            if(p->files[i] == 0) {
+                p->files[i] = f;
+                return i;
+            }
+        }
+        return -1;
+    }
+
+一个进程能打开的文件是有限的（我们设置为16）。一个进程如果要打开某一个文件，其文件指针数组必须有空位。如果有，就把下标做为文件的fd，并把指定文件指针存入数组之中。
+
 
 获取文件对应的inode
 ---------------------------------------
-
 现在我们回到文件-inode的关系上。我们怎么获取文件对应的inode呢？上文中提到了我们是去查file name对应inode的表来实现这个过程的。这个功能由目录来提供。我们看一下代码是如何实现这个过程的。
 
 首先用户程序要打开指定文件名文件，发起系统调用sys_openat:
