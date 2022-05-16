@@ -18,7 +18,18 @@
 user文件夹以及测例简介
 ---------------------------------------
 
-应用程序的实现在项目根目录的 ``user`` 目录下，以 submodule 的形式存在。本章的测例文件，实际就是批处理操作系统中一个个待执行的文件。下面我们看一个测例来理解本章以及之后测例的本质：
+本章我们引入了用户程序。为了将内核与应用解耦，我们将二者分成了两个仓库，分别是存放内核程序的 ``uCore-Tutorial-Code-20xxx`` （下称代码仓库，最后几位 x 表示学期）与存放用户程序的 ``uCore-Tutorial-Test-20xxx`` （下称测例仓库）。 你首先需要进入代码仓库文件夹并 clone 用户程序仓库（如果已经执行过该步骤则不需要再重复执行）：
+
+.. code-block:: console
+
+   $ git clone https://github.com/LearningOS/uCore-Tutorial-Code-2022S.git
+   $ cd uCore-Tutorial-Code-2022S
+   $ git checkout ch2
+   $ git clone https://github.com/LearningOS/uCore-Tutorial-Test-2022S.git user
+
+上面的指令会将测例仓库克隆到代码仓库下并命名为 ``user`` ，注意 ``/user`` 在代码仓库的 ``.gitignore`` 文件中，因此不会出现 ``.git`` 文件夹嵌套的问题，并且你在代码仓库进行 checkout 操作时也不会影响测例仓库的内容。
+
+测例实际就是批处理操作系统中一个个待执行的文件。下面我们看一个测例来理解本章以及之后测例的本质：
 
 .. code-block:: c
 
