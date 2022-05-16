@@ -34,39 +34,21 @@
    $ make test BASE=1
    >> ch6b_usertest
 
-.. code-block:: bash
+.. code-block::
 
-    >> ch6b_filetest
+    >> ch6b_filetest_simple
     file_test passed!
     Shell: Process 2 exited with code 0
-    >> 
+    >>
 
-它会将 ``Hello, world!`` 输出到另一个文件 ``filea`` ，并读取里面的内容确认输出正确。我们也可以通过命令行工具 ``cat`` 来更直观的查看 ``filea`` 中的内容：
+它会将 ``Hello, world!`` 输出到另一个文件 ``filea`` ，并读取里面的内容确认输出正确。我们也可以通过命令行工具 ``ch6b_cat`` 来查看 ``filea`` 中的内容：
 
-.. code-block:: bash
+.. code-block::
 
-   >> cat filea
+   >> ch6b_cat
    Hello, world!
    Shell: Process 2 exited with code 0
-   >> 
-
-此外，在本章我们为shell程序支持了输入/输出重定向功能，可以将一个应用的输出保存到一个指定的文件。例如，下面的命令可以将 ``yield`` 应用的输出保存在文件 ``fileb`` 当中，并在应用执行完毕之后确认它的输出：
-
-.. code-block:: bash
-
-   >> yield > fileb
-   Shell: Process 2 exited with code 0
-   >> cat fileb
-   Hello, I am process 2.
-   Back in process 2, iteration 0.
-   Back in process 2, iteration 1.
-   Back in process 2, iteration 2.
-   Back in process 2, iteration 3.
-   Back in process 2, iteration 4.
-   yield pass.
-
-   Shell: Process 2 exited with code 0
-   >> 
+   >>
 
 本章代码树
 -----------------------------------------
