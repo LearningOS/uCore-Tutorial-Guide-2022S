@@ -184,10 +184,16 @@ mappages的perm是用于控制页表项的flags的。请注意它具体指向哪
         pagetable_t kpgtbl;
         kpgtbl = (pagetable_t) kalloc();
         memset(kpgtbl, 0, PGSIZE);
-        mappages(kpgtbl, KERNBASE, KERNBASE, (uint64) e_text - KERNBASE, PTE_R | PTE_X);
-        mappages(kpgtbl, (uint64) e_text, (uint64) e_text, PHYSTOP - (uint64) e_text, PTE_R | PTE_W);
-        mappages(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
+        kvmmap(kpgtbl, KERNBASE, KERNBASE, (uint64) e_text - KERNBASE, PTE_R | PTE_X);
+        kvmmap(kpgtbl, (uint64) e_text, (uint64) e_text, PHYSTOP - (uint64) e_text, PTE_R | PTE_W);
+        kvmmap(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
         return kpgtbl;
+    }
+
+    void kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
+    {
+        if (mappages(kpgtbl, va, sz, pa, perm) != 0)
+            panic("kvmmap");
     }
 
 用户页表的加载
@@ -265,4 +271,4 @@ mappages的perm是用于控制页表项的flags的。请注意它具体指向哪
     #define TRAMPOLINE (USER_TOP - PGSIZE)
     #define TRAPFRAME (TRAMPOLINE - PGSIZE)
 
-这与为何要这么设定，留给读者思考。
+至于为何要这么设定，留给读者思考。
