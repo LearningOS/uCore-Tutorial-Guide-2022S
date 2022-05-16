@@ -278,7 +278,15 @@
 </div>
 <div class="section" id="id2">
 <h2>user文件夹以及测例简介<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
-<p>应用程序的实现在项目根目录的 <code class="docutils literal notranslate"><span class="pre">user</span></code> 目录下，以 submodule 的形式存在。本章的测例文件，实际就是批处理操作系统中一个个待执行的文件。下面我们看一个测例来理解本章以及之后测例的本质：</p>
+<p>本章我们引入了用户程序。为了将内核与应用解耦，我们将二者分成了两个仓库，分别是存放内核程序的 <code class="docutils literal notranslate"><span class="pre">uCore-Tutorial-Code-20xxx</span></code> （下称代码仓库，最后几位 x 表示学期）与存放用户程序的 <code class="docutils literal notranslate"><span class="pre">uCore-Tutorial-Test-20xxx</span></code> （下称测例仓库）。 你首先需要进入代码仓库文件夹并 clone 用户程序仓库（如果已经执行过该步骤则不需要再重复执行）：</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>git clone https://github.com/LearningOS/uCore-Tutorial-Code-2022S.git
+<span class="gp">$ </span><span class="nb">cd</span> uCore-Tutorial-Code-2022S
+<span class="gp">$ </span>git checkout ch2
+<span class="gp">$ </span>git clone https://github.com/LearningOS/uCore-Tutorial-Test-2022S.git user
+</pre></div>
+</div>
+<p>上面的指令会将测例仓库克隆到代码仓库下并命名为 <code class="docutils literal notranslate"><span class="pre">user</span></code> ，注意 <code class="docutils literal notranslate"><span class="pre">/user</span></code> 在代码仓库的 <code class="docutils literal notranslate"><span class="pre">.gitignore</span></code> 文件中，因此不会出现 <code class="docutils literal notranslate"><span class="pre">.git</span></code> 文件夹嵌套的问题，并且你在代码仓库进行 checkout 操作时也不会影响测例仓库的内容。</p>
+<p>测例实际就是批处理操作系统中一个个待执行的文件。下面我们看一个测例来理解本章以及之后测例的本质：</p>
 <div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// ch2_hello_world.c</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span><span class="cp"></span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;unistd.h&gt;</span><span class="cp"></span>
