@@ -346,15 +346,28 @@
 </li>
 </ul>
 <p><strong>fstat</strong>:</p>
-<ul class="simple">
+<ul>
 <li><p>syscall ID: 80</p></li>
 <li><p>功能：获取文件状态。</p></li>
 <li><p>接口： <code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">fstat(int</span> <span class="pre">fd,</span> <span class="pre">struct</span> <span class="pre">Stat*</span> <span class="pre">st)</span></code></p></li>
-<li><dl class="simple">
-<dt>参数：</dt><dd><ul>
+<li><dl>
+<dt>参数：</dt><dd><ul class="simple">
 <li><p>fd: 文件描述符</p></li>
 <li><p>st: 文件状态结构体</p></li>
 </ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">Stat</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">   </span><span class="n">uint64</span><span class="w"> </span><span class="n">dev</span><span class="p">,</span><span class="w">     </span><span class="c1">// 文件所在磁盘驱动号，该实现写死为 0 即可。</span>
+<span class="w">   </span><span class="n">uint64</span><span class="w"> </span><span class="n">ino</span><span class="p">,</span><span class="w">     </span><span class="c1">// inode 文件所在 inode 编号</span>
+<span class="w">   </span><span class="n">uint32</span><span class="w"> </span><span class="n">mode</span><span class="p">,</span><span class="w">    </span><span class="c1">// 文件类型</span>
+<span class="w">   </span><span class="n">uint32</span><span class="w"> </span><span class="n">nlink</span><span class="p">,</span><span class="w">   </span><span class="c1">// 硬链接数量，初始为1</span>
+<span class="w">   </span><span class="n">uint64</span><span class="w"> </span><span class="n">pad</span><span class="p">[</span><span class="mi">7</span><span class="p">],</span><span class="w">  </span><span class="c1">// 无需考虑，为了兼容性设计</span>
+<span class="p">}</span><span class="w"></span>
+
+<span class="c1">// 文件类型只需要考虑:</span>
+<span class="cp">#define DIR 0x040000              </span><span class="c1">// directory</span>
+<span class="cp">#define FILE 0x100000             </span><span class="c1">// ordinary regular file</span>
+</pre></div>
+</div>
 </dd>
 </dl>
 </li>
