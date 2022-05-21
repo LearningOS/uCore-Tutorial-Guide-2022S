@@ -119,7 +119,7 @@ B-stmts 会先执行，然后才是线程 A 的 A-stmts 开始执行。相关伪
 
 .. code-block:: C
   :linenos:
-  :emphasize-lines: 5,10,16,22,25,28
+  :emphasize-lines: 5,10,16,23,28,33
 
   const int SEM_SYNC = 0; //信号量ID
   void first() {

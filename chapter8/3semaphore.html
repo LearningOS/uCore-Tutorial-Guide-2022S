@@ -385,19 +385,19 @@ B-stmts 会先执行，然后才是线程 A 的 A-stmts 开始执行。相关伪
 <span class="linenos">19</span><span class="p">}</span><span class="w"></span>
 <span class="linenos">20</span>
 <span class="linenos">21</span><span class="kt">int</span><span class="w"> </span><span class="nf">semaphore_create</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">res_count</span><span class="p">)</span><span class="w"></span>
-<span class="hll"><span class="linenos">22</span><span class="p">{</span><span class="w"></span>
-</span><span class="linenos">23</span><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">syscall</span><span class="p">(</span><span class="n">SYS_semaphore_create</span><span class="p">,</span><span class="w"> </span><span class="n">res_count</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">24</span><span class="p">}</span><span class="w"></span>
-<span class="hll"><span class="linenos">25</span>
-</span><span class="linenos">26</span><span class="kt">int</span><span class="w"> </span><span class="nf">semaphore_up</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">sid</span><span class="p">)</span><span class="w"></span>
+<span class="linenos">22</span><span class="p">{</span><span class="w"></span>
+<span class="hll"><span class="linenos">23</span><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">syscall</span><span class="p">(</span><span class="n">SYS_semaphore_create</span><span class="p">,</span><span class="w"> </span><span class="n">res_count</span><span class="p">);</span><span class="w"></span>
+</span><span class="linenos">24</span><span class="p">}</span><span class="w"></span>
+<span class="linenos">25</span>
+<span class="linenos">26</span><span class="kt">int</span><span class="w"> </span><span class="nf">semaphore_up</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">sid</span><span class="p">)</span><span class="w"></span>
 <span class="linenos">27</span><span class="p">{</span><span class="w"></span>
 <span class="hll"><span class="linenos">28</span><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">syscall</span><span class="p">(</span><span class="n">SYS_semaphore_up</span><span class="p">,</span><span class="w"> </span><span class="n">sid</span><span class="p">);</span><span class="w"></span>
 </span><span class="linenos">29</span><span class="p">}</span><span class="w"></span>
 <span class="linenos">30</span>
 <span class="linenos">31</span><span class="kt">int</span><span class="w"> </span><span class="nf">semaphore_down</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">sid</span><span class="p">)</span><span class="w"></span>
 <span class="linenos">32</span><span class="p">{</span><span class="w"></span>
-<span class="linenos">33</span><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">syscall</span><span class="p">(</span><span class="n">SYS_semaphore_down</span><span class="p">,</span><span class="w"> </span><span class="n">sid</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">34</span><span class="p">}</span><span class="w"></span>
+<span class="hll"><span class="linenos">33</span><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">syscall</span><span class="p">(</span><span class="n">SYS_semaphore_down</span><span class="p">,</span><span class="w"> </span><span class="n">sid</span><span class="p">);</span><span class="w"></span>
+</span><span class="linenos">34</span><span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 <ul class="simple">
