@@ -2,7 +2,7 @@
 <html class="no-js" lang="zh_CN">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="chapter8练习" href="5exercise.html" /><link rel="prev" title="信号量机制" href="3semaphore.html" />
+    <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="chapter8 练习" href="5exercise.html" /><link rel="prev" title="信号量机制" href="3semaphore.html" />
 
     <meta name="generator" content="sphinx-4.1.2, furo 2021.08.31"/>
         <title>条件变量机制 - uCore-Tutorial-Guide-2022S 0.1 文档</title>
@@ -231,7 +231,7 @@
 <li class="toctree-l2"><a class="reference internal" href="2lock.html">锁机制</a></li>
 <li class="toctree-l2"><a class="reference internal" href="3semaphore.html">信号量机制</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">条件变量机制</a></li>
-<li class="toctree-l2"><a class="reference internal" href="5exercise.html">chapter8练习</a></li>
+<li class="toctree-l2"><a class="reference internal" href="5exercise.html">chapter8 练习</a></li>
 </ul>
 </li>
 </ul>
@@ -278,14 +278,14 @@
 线程需要检查某一条件（condition）满足之后，才会继续执行。</p>
 <p>我们来看一个例子，有两个线程 first 和 second 在运行，线程 first 会把全局变量 A 设置为
 1，而线程 second 在 <code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">!=</span> <span class="pre">0</span></code> 的条件满足后，才能继续执行，如下面的伪代码所示：</p>
-<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">static</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">A</span>: <span class="kt">usize</span> <span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="linenos"> 2</span><span class="k">unsafe</span><span class="w"> </span><span class="k">fn</span> <span class="nf">first</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="o">!</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="linenos"> 2</span><span class="kt">void</span><span class="w"> </span><span class="nf">first</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="linenos"> 3</span><span class="w">    </span><span class="n">A</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
-<span class="linenos"> 4</span><span class="w">    </span><span class="o">..</span><span class="p">.</span><span class="w"></span>
+<span class="linenos"> 4</span><span class="w">    </span><span class="p">...</span><span class="w"></span>
 <span class="linenos"> 5</span><span class="p">}</span><span class="w"></span>
 <span class="linenos"> 6</span>
-<span class="linenos"> 7</span><span class="k">unsafe</span><span class="w"> </span><span class="k">fn</span> <span class="nf">second</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="o">!</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos"> 8</span><span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="n">A</span><span class="o">==</span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos"> 7</span><span class="kt">void</span><span class="w"> </span><span class="nf">second</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos"> 8</span><span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">A</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="linenos"> 9</span><span class="w">      </span><span class="c1">// 忙等或睡眠等待 A==1</span>
 <span class="linenos">10</span><span class="w">    </span><span class="p">};</span><span class="w"></span>
 <span class="linenos">11</span><span class="w">    </span><span class="c1">//继续执行相关事务</span>
@@ -295,37 +295,41 @@
 <p>在上面的例子中，如果线程 second 先执行，会忙等在 while 循环中，在操作系统的调度下，线程
 first 会执行并把 A 赋值为 1 后，然后线程 second 再次执行时，就会跳出 while 循环，进行接下来的工作。
 配合互斥锁，可以正确完成上述带条件的同步流程，如下面的伪代码所示：</p>
-<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">static</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">A</span>: <span class="kt">usize</span> <span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="linenos"> 2</span><span class="k">unsafe</span><span class="w"> </span><span class="k">fn</span> <span class="nf">first</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="o">!</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="linenos"> 2</span><span class="kt">void</span><span class="w"> </span><span class="nf">first</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="linenos"> 3</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span><span class="w"></span>
 <span class="linenos"> 4</span><span class="w">    </span><span class="n">A</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
 <span class="linenos"> 5</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span><span class="w"></span>
-<span class="linenos"> 6</span><span class="w">    </span><span class="o">..</span><span class="p">.</span><span class="w"></span>
+<span class="linenos"> 6</span><span class="w">    </span><span class="p">...</span><span class="w"></span>
 <span class="linenos"> 7</span><span class="p">}</span><span class="w"></span>
 <span class="linenos"> 8</span>
-<span class="linenos"> 9</span><span class="k">unsafe</span><span class="w"> </span><span class="k">fn</span> <span class="nf">second</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="o">!</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">10</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">11</span><span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="n">A</span><span class="o">==</span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">};</span><span class="w"></span>
+<span class="linenos"> 9</span><span class="kt">void</span><span class="w"> </span><span class="nf">second</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">10</span><span class="w">  </span><span class="n">mutex</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span><span class="w"></span>
+<span class="linenos">11</span><span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="linenos">12</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">13</span><span class="w">    </span><span class="c1">//继续执行相关事务</span>
-<span class="linenos">14</span><span class="p">}</span><span class="w"></span>
+<span class="linenos">13</span><span class="w">    </span><span class="c1">// give other thread chance to lock</span>
+<span class="linenos">14</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span><span class="w"></span>
+<span class="linenos">15</span><span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="linenos">16</span><span class="w">  </span><span class="n">mutex</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span><span class="w"></span>
+<span class="linenos">17</span><span class="w">    </span><span class="c1">//继续执行相关事务</span>
+<span class="linenos">18</span><span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 <p>这种实现能执行，但效率低下，因为线程 second 会忙等检查，浪费处理器时间。我们希望有某种方式让线程
 second 休眠，直到等待的条件满足，再继续执行。于是，我们可以写出如下的代码：</p>
-<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">static</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">A</span>: <span class="kt">usize</span> <span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="linenos"> 2</span><span class="k">unsafe</span><span class="w"> </span><span class="k">fn</span> <span class="nf">first</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="o">!</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="linenos"> 2</span><span class="kt">void</span><span class="w"> </span><span class="nf">first</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="linenos"> 3</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span><span class="w"></span>
 <span class="linenos"> 4</span><span class="w">    </span><span class="n">A</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
 <span class="linenos"> 5</span><span class="w">    </span><span class="n">wakup</span><span class="p">(</span><span class="n">second</span><span class="p">);</span><span class="w"></span>
 <span class="linenos"> 6</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span><span class="w"></span>
-<span class="linenos"> 7</span><span class="w">    </span><span class="o">..</span><span class="p">.</span><span class="w"></span>
+<span class="linenos"> 7</span><span class="w">    </span><span class="p">...</span><span class="w"></span>
 <span class="linenos"> 8</span><span class="p">}</span><span class="w"></span>
 <span class="linenos"> 9</span>
-<span class="linenos">10</span><span class="k">unsafe</span><span class="w"> </span><span class="k">fn</span> <span class="nf">second</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="o">!</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">10</span><span class="kt">void</span><span class="w"> </span><span class="nf">second</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="linenos">11</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">12</span><span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="n">A</span><span class="o">==</span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">13</span><span class="w">       </span><span class="n">wait</span><span class="p">();</span><span class="w"></span>
+<span class="linenos">12</span><span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">A</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">13</span><span class="w">        </span><span class="n">wait</span><span class="p">();</span><span class="w"></span>
 <span class="linenos">14</span><span class="w">    </span><span class="p">};</span><span class="w"></span>
 <span class="linenos">15</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span><span class="w"></span>
 <span class="linenos">16</span><span class="w">    </span><span class="c1">//继续执行相关事务</span>
@@ -368,19 +372,19 @@ second 休眠，直到等待的条件满足，再继续执行。于是，我们�
 我们还是可以用手动加入互斥锁的方式来代替编译器，就可以在 C 和 Rust 的基础上实现原始的管程机制了。
 在目前的 C 语言应用开发中，实际上也是这么做的。这样，我们就可以用互斥锁和条件变量，
 来重现上述的同步互斥例子：</p>
-<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">static</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">A</span>: <span class="kt">usize</span> <span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="linenos"> 2</span><span class="k">unsafe</span><span class="w"> </span><span class="k">fn</span> <span class="nf">first</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="o">!</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="linenos"> 2</span><span class="kt">void</span><span class="w"> </span><span class="nf">first</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="linenos"> 3</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span><span class="w"></span>
 <span class="linenos"> 4</span><span class="w">    </span><span class="n">A</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
 <span class="linenos"> 5</span><span class="w">    </span><span class="n">condvar</span><span class="p">.</span><span class="n">wakup</span><span class="p">();</span><span class="w"></span>
 <span class="linenos"> 6</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span><span class="w"></span>
-<span class="linenos"> 7</span><span class="w">    </span><span class="o">..</span><span class="p">.</span><span class="w"></span>
+<span class="linenos"> 7</span><span class="w">    </span><span class="p">...</span><span class="w"></span>
 <span class="linenos"> 8</span><span class="p">}</span><span class="w"></span>
 <span class="linenos"> 9</span>
-<span class="linenos">10</span><span class="k">unsafe</span><span class="w"> </span><span class="k">fn</span> <span class="nf">second</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="o">!</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">10</span><span class="kt">void</span><span class="w"> </span><span class="nf">second</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="linenos">11</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">12</span><span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="n">A</span><span class="o">==</span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">13</span><span class="w">       </span><span class="n">condvar</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">mutex</span><span class="p">);</span><span class="w"> </span><span class="c1">//在睡眠等待之前，需要释放mutex</span>
+<span class="linenos">12</span><span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">A</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">13</span><span class="w">        </span><span class="n">condvar</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">mutex</span><span class="p">);</span><span class="w"> </span><span class="c1">//在睡眠等待之前，需要释放mutex</span>
 <span class="linenos">14</span><span class="w">    </span><span class="p">};</span><span class="w"></span>
 <span class="linenos">15</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span><span class="w"></span>
 <span class="linenos">16</span><span class="w">    </span><span class="c1">//继续执行相关事务</span>
@@ -388,14 +392,14 @@ second 休眠，直到等待的条件满足，再继续执行。于是，我们�
 </pre></div>
 </div>
 <p>有了上面的介绍，我们就可以实现条件变量的基本逻辑了。下面是条件变量的 wait 和 signal 操作的伪代码：</p>
-<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="k">fn</span> <span class="nf">wait</span><span class="p">(</span><span class="n">mutex</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kt">void</span><span class="w"> </span><span class="nf">wait</span><span class="p">(</span><span class="n">mutex</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="linenos">2</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">3</span><span class="w">    </span><span class="o">&lt;</span><span class="n">block</span><span class="w"> </span><span class="n">and</span><span class="w"> </span><span class="n">enqueue</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">thread</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">3</span><span class="w">    </span><span class="o">&lt;</span><span class="n">block</span><span class="w"> </span><span class="n">and</span><span class="w"> </span><span class="n">enqueue</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="kr">thread</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
 <span class="linenos">4</span><span class="w">    </span><span class="n">mutex</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span><span class="w"></span>
 <span class="linenos">5</span><span class="p">}</span><span class="w"></span>
 <span class="linenos">6</span>
-<span class="linenos">7</span><span class="k">fn</span> <span class="nf">signal</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">8</span><span class="w">    </span><span class="o">&lt;</span><span class="n">unblock</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">thread</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">7</span><span class="kt">void</span><span class="w"> </span><span class="nf">signal</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">8</span><span class="w">    </span><span class="o">&lt;</span><span class="n">unblock</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="kr">thread</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
 <span class="linenos">9</span><span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
@@ -414,53 +418,58 @@ second 休眠，直到等待的条件满足，再继续执行。于是，我们�
 Second 执行时，会由于条件不满足执行条件变量的 wait 操作而等待睡眠；当线程 First 醒来后，通过设置
 A 为 1，让线程 second 等待的条件满足，然后会执行条件变量的 signal 操作，从而能够唤醒线程 Second。
 这样线程 First 和线程 Second 就形成了一种稳定的同步与互斥关系。</p>
-<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">static</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">A</span>: <span class="kt">usize</span> <span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">   </span><span class="c1">//全局变量</span>
+<div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">   </span><span class="c1">//全局变量</span>
 <span class="linenos"> 2</span>
-<span class="linenos"> 3</span><span class="k">const</span><span class="w"> </span><span class="n">CONDVAR_ID</span>: <span class="kt">usize</span> <span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
-<span class="linenos"> 4</span><span class="k">const</span><span class="w"> </span><span class="n">MUTEX_ID</span>: <span class="kt">usize</span> <span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="linenos"> 3</span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">CONDVAR_ID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="linenos"> 4</span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">MUTEX_ID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
 <span class="linenos"> 5</span>
-<span class="linenos"> 6</span><span class="k">unsafe</span><span class="w"> </span><span class="k">fn</span> <span class="nf">first</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="o">!</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos"> 6</span><span class="kt">void</span><span class="w"> </span><span class="nf">first</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="linenos"> 7</span><span class="w">    </span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span><span class="w"></span>
-<span class="linenos"> 8</span><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"First work, Change A --&gt; 1 and wakeup Second"</span><span class="p">);</span><span class="w"></span>
+<span class="linenos"> 8</span><span class="w">    </span><span class="n">puts</span><span class="p">(</span><span class="s">"First work, Change A --&gt; 1 and wakeup Second"</span><span class="p">);</span><span class="w"></span>
 <span class="linenos"> 9</span><span class="w">    </span><span class="n">mutex_lock</span><span class="p">(</span><span class="n">MUTEX_ID</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">10</span><span class="w">    </span><span class="n">A</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
-<span class="hll"><span class="linenos">11</span><span class="w">    </span><span class="n">condvar_signal</span><span class="p">(</span><span class="n">CONDVAR_ID</span><span class="p">);</span><span class="w"></span>
-</span><span class="linenos">12</span><span class="w">    </span><span class="n">mutex_unlock</span><span class="p">(</span><span class="n">MUTEX_ID</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">13</span><span class="w">    </span><span class="o">..</span><span class="p">.</span><span class="w"></span>
+<span class="linenos">10</span><span class="w">    </span><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">11</span><span class="w">    </span><span class="n">condvar_signal</span><span class="p">(</span><span class="n">CONDVAR_ID</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">12</span><span class="w">    </span><span class="n">mutex_unlock</span><span class="p">(</span><span class="n">MUTEX_ID</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">13</span><span class="w">    </span><span class="p">...</span><span class="w"></span>
 <span class="linenos">14</span><span class="p">}</span><span class="w"></span>
-<span class="linenos">15</span><span class="k">unsafe</span><span class="w"> </span><span class="k">fn</span> <span class="nf">second</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="o">!</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">16</span><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">"Second want to continue,but need to wait A=1"</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">15</span><span class="kt">void</span><span class="w"> </span><span class="nf">second</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">16</span><span class="w">    </span><span class="n">puts</span><span class="p">(</span><span class="s">"Second want to continue,but need to wait A=1"</span><span class="p">);</span><span class="w"></span>
 <span class="linenos">17</span><span class="w">    </span><span class="n">mutex_lock</span><span class="p">(</span><span class="n">MUTEX_ID</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">18</span><span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="n">A</span><span class="o">==</span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="hll"><span class="linenos">19</span><span class="w">        </span><span class="n">condvar_wait</span><span class="p">(</span><span class="n">CONDVAR_ID</span><span class="p">,</span><span class="w"> </span><span class="n">MUTEX_ID</span><span class="p">);</span><span class="w"></span>
-</span><span class="linenos">20</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="linenos">18</span><span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">A</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">19</span><span class="w">        </span><span class="n">condvar_wait</span><span class="p">(</span><span class="n">CONDVAR_ID</span><span class="p">,</span><span class="w"> </span><span class="n">MUTEX_ID</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">20</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="linenos">21</span><span class="w">    </span><span class="n">mutex_unlock</span><span class="p">(</span><span class="n">MUTEX_ID</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">22</span><span class="w">    </span><span class="o">..</span><span class="p">.</span><span class="w"></span>
+<span class="linenos">22</span><span class="w">    </span><span class="p">...</span><span class="w"></span>
 <span class="linenos">23</span><span class="p">}</span><span class="w"></span>
-<span class="linenos">24</span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span> <span class="nf">main</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="kt">i32</span> <span class="p">{</span><span class="w"></span>
+<span class="linenos">24</span><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="linenos">25</span><span class="w">    </span><span class="c1">// create condvar &amp; mutex</span>
-<span class="hll"><span class="linenos">26</span><span class="w">    </span><span class="fm">assert_eq!</span><span class="p">(</span><span class="n">condvar_create</span><span class="p">()</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span><span class="w"> </span><span class="n">CONDVAR_ID</span><span class="p">);</span><span class="w"></span>
-</span><span class="linenos">27</span><span class="w">    </span><span class="fm">assert_eq!</span><span class="p">(</span><span class="n">mutex_blocking_create</span><span class="p">()</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span><span class="w"> </span><span class="n">MUTEX_ID</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">26</span><span class="w">    </span><span class="n">assert_eq</span><span class="p">(</span><span class="n">condvar_create</span><span class="p">(),</span><span class="w"> </span><span class="n">CONDVAR_ID</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">27</span><span class="w">    </span><span class="n">assert_eq</span><span class="p">(</span><span class="n">mutex_blocking_create</span><span class="p">(),</span><span class="w"> </span><span class="n">MUTEX_ID</span><span class="p">);</span><span class="w"></span>
 <span class="linenos">28</span><span class="w">    </span><span class="c1">// create first, second threads</span>
-<span class="linenos">29</span><span class="w">    </span><span class="o">..</span><span class="p">.</span><span class="w"></span>
+<span class="linenos">29</span><span class="w">    </span><span class="p">...</span><span class="w"></span>
 <span class="linenos">30</span><span class="p">}</span><span class="w"></span>
 <span class="linenos">31</span>
-<span class="linenos">32</span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span> <span class="nf">condvar_create</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="kt">isize</span> <span class="p">{</span><span class="w"></span>
-<span class="hll"><span class="linenos">33</span><span class="w">    </span><span class="n">sys_condvar_create</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"></span>
-</span><span class="linenos">34</span><span class="p">}</span><span class="w"></span>
-<span class="linenos">35</span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span> <span class="nf">condvar_signal</span><span class="p">(</span><span class="n">condvar_id</span>: <span class="kt">usize</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="hll"><span class="linenos">36</span><span class="w">    </span><span class="n">sys_condvar_signal</span><span class="p">(</span><span class="n">condvar_id</span><span class="p">);</span><span class="w"></span>
-</span><span class="linenos">37</span><span class="p">}</span><span class="w"></span>
-<span class="linenos">38</span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span> <span class="nf">condvar_wait</span><span class="p">(</span><span class="n">condvar_id</span>: <span class="kt">usize</span><span class="p">,</span><span class="w"> </span><span class="n">mutex_id</span>: <span class="kt">usize</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="hll"><span class="linenos">39</span><span class="w">    </span><span class="n">sys_condvar_wait</span><span class="p">(</span><span class="n">condvar_id</span><span class="p">,</span><span class="w"> </span><span class="n">mutex_id</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">32</span><span class="kt">int</span><span class="w"> </span><span class="nf">condvar_create</span><span class="p">()</span><span class="w"></span>
+<span class="linenos">33</span><span class="p">{</span><span class="w"></span>
+<span class="hll"><span class="linenos">34</span><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">syscall</span><span class="p">(</span><span class="n">SYS_condvar_create</span><span class="p">);</span><span class="w"></span>
+</span><span class="linenos">35</span><span class="p">}</span><span class="w"></span>
+<span class="linenos">36</span>
+<span class="linenos">37</span><span class="kt">int</span><span class="w"> </span><span class="nf">condvar_signal</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">cid</span><span class="p">)</span><span class="w"></span>
+<span class="linenos">38</span><span class="p">{</span><span class="w"></span>
+<span class="hll"><span class="linenos">39</span><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">syscall</span><span class="p">(</span><span class="n">SYS_condvar_signal</span><span class="p">,</span><span class="w"> </span><span class="n">cid</span><span class="p">);</span><span class="w"></span>
 </span><span class="linenos">40</span><span class="p">}</span><span class="w"></span>
+<span class="linenos">41</span>
+<span class="linenos">42</span><span class="kt">int</span><span class="w"> </span><span class="nf">condvar_wait</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">cid</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">mid</span><span class="p">)</span><span class="w"></span>
+<span class="linenos">43</span><span class="p">{</span><span class="w"></span>
+<span class="hll"><span class="linenos">44</span><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">syscall</span><span class="p">(</span><span class="n">SYS_condvar_wait</span><span class="p">,</span><span class="w"> </span><span class="n">cid</span><span class="p">,</span><span class="w"> </span><span class="n">mid</span><span class="p">);</span><span class="w"></span>
+</span><span class="linenos">45</span><span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 <ul class="simple">
-<li><p>第 26 行，创建了一个 ID 为 <code class="docutils literal notranslate"><span class="pre">CONDVAR_ID</span></code> 的条件量，对应第 33 行 <code class="docutils literal notranslate"><span class="pre">SYSCALL_CONDVAR_CREATE</span></code> 系统调用；</p></li>
-<li><p>第 19 行，线程 Second 执行条件变量 <code class="docutils literal notranslate"><span class="pre">wait</span></code> 操作（对应第 39 行 <code class="docutils literal notranslate"><span class="pre">SYSCALL_CONDVAR_WAIT</span></code> 系统调用），
+<li><p>第 26 行，创建了一个 ID 为 <code class="docutils literal notranslate"><span class="pre">CONDVAR_ID</span></code> 的条件量，对应第 34 行 <code class="docutils literal notranslate"><span class="pre">SYSCALL_CONDVAR_CREATE</span></code> 系统调用；</p></li>
+<li><p>第 19 行，线程 Second 执行条件变量 <code class="docutils literal notranslate"><span class="pre">wait</span></code> 操作（对应第 44 行 <code class="docutils literal notranslate"><span class="pre">SYSCALL_CONDVAR_WAIT</span></code> 系统调用），
 该线程将释放 <code class="docutils literal notranslate"><span class="pre">mutex</span></code> 锁并阻塞；</p></li>
-<li><p>第 5 行，线程 First 执行条件变量 <code class="docutils literal notranslate"><span class="pre">signal</span></code> 操作（对应第 36 行 <code class="docutils literal notranslate"><span class="pre">SYSCALL_CONDVAR_SIGNAL</span></code> 系统调用），
+<li><p>第 5 行，线程 First 执行条件变量 <code class="docutils literal notranslate"><span class="pre">signal</span></code> 操作（对应第 39 行 <code class="docutils literal notranslate"><span class="pre">SYSCALL_CONDVAR_SIGNAL</span></code> 系统调用），
 会唤醒等待该条件变量的线程 Second。</p></li>
 </ul>
 </div>
@@ -473,60 +482,67 @@ A 为 1，让线程 second 等待的条件满足，然后会执行条件变量�
 操作系统需要显式地施加某种控制，来确定当一个线程执行 <code class="docutils literal notranslate"><span class="pre">wait</span></code> 操作和 <code class="docutils literal notranslate"><span class="pre">signal</span></code> 操作时，
 如何让线程睡眠或唤醒线程。在这里， <code class="docutils literal notranslate"><span class="pre">wait</span></code> 操作是由 <code class="docutils literal notranslate"><span class="pre">Condvar</span></code> 的 <code class="docutils literal notranslate"><span class="pre">wait</span></code> 方法实现，而 <code class="docutils literal notranslate"><span class="pre">signal</span></code>
 操作是由 <code class="docutils literal notranslate"><span class="pre">Condvar</span></code> 的 <code class="docutils literal notranslate"><span class="pre">signal</span></code> 方法实现。</p>
-<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">pub</span><span class="w"> </span><span class="k">struct</span> <span class="nc">ProcessControlBlock</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos"> 2</span><span class="w">    </span><span class="c1">// immutable</span>
-<span class="linenos"> 3</span><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">pid</span>: <span class="nc">PidHandle</span><span class="p">,</span><span class="w"></span>
-<span class="linenos"> 4</span><span class="w">    </span><span class="c1">// mutable</span>
-<span class="linenos"> 5</span><span class="w">    </span><span class="n">inner</span>: <span class="nc">UPSafeCell</span><span class="o">&lt;</span><span class="n">ProcessControlBlockInner</span><span class="o">&gt;</span><span class="p">,</span><span class="w"></span>
-<span class="linenos"> 6</span><span class="p">}</span><span class="w"></span>
-<span class="linenos"> 7</span><span class="k">pub</span><span class="w"> </span><span class="k">struct</span> <span class="nc">ProcessControlBlockInner</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos"> 8</span><span class="w">    </span><span class="o">..</span><span class="p">.</span><span class="w"></span>
-<span class="hll"><span class="linenos"> 9</span><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">condvar_list</span>: <span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">Arc</span><span class="o">&lt;</span><span class="n">Condvar</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span><span class="w"></span>
-</span><span class="linenos">10</span><span class="p">}</span><span class="w"></span>
-<span class="linenos">11</span><span class="k">pub</span><span class="w"> </span><span class="k">struct</span> <span class="nc">Condvar</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">12</span><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">inner</span>: <span class="nc">UPSafeCell</span><span class="o">&lt;</span><span class="n">CondvarInner</span><span class="o">&gt;</span><span class="p">,</span><span class="w"></span>
-<span class="linenos">13</span><span class="p">}</span><span class="w"></span>
-<span class="linenos">14</span><span class="k">pub</span><span class="w"> </span><span class="k">struct</span> <span class="nc">CondvarInner</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="hll"><span class="linenos">15</span><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">wait_queue</span>: <span class="nc">VecDeque</span><span class="o">&lt;</span><span class="n">Arc</span><span class="o">&lt;</span><span class="n">TaskControlBlock</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="w"></span>
-</span><span class="linenos">16</span><span class="p">}</span><span class="w"></span>
-<span class="linenos">17</span><span class="k">impl</span><span class="w"> </span><span class="n">Condvar</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="hll"><span class="linenos">18</span><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span> <span class="nf">new</span><span class="p">()</span><span class="w"> </span>-&gt; <span class="nc">Self</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-</span><span class="linenos">19</span><span class="w">        </span><span class="bp">Self</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">20</span><span class="w">            </span><span class="n">inner</span>: <span class="nc">unsafe</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">UPSafeCell</span>::<span class="n">new</span><span class="p">(</span><span class="w"></span>
-<span class="linenos">21</span><span class="w">                </span><span class="n">CondvarInner</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">22</span><span class="w">                    </span><span class="n">wait_queue</span>: <span class="nc">VecDeque</span>::<span class="n">new</span><span class="p">(),</span><span class="w"></span>
-<span class="linenos">23</span><span class="w">                </span><span class="p">}</span><span class="w"></span>
-<span class="linenos">24</span><span class="w">            </span><span class="p">)},</span><span class="w"></span>
-<span class="linenos">25</span><span class="w">        </span><span class="p">}</span><span class="w"></span>
-<span class="linenos">26</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="hll"><span class="linenos">27</span><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span> <span class="nf">signal</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-</span><span class="linenos">28</span><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">inner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">inner</span><span class="p">.</span><span class="n">exclusive_access</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">29</span><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="kd">let</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inner</span><span class="p">.</span><span class="n">wait_queue</span><span class="p">.</span><span class="n">pop_front</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="linenos">30</span><span class="w">            </span><span class="n">add_task</span><span class="p">(</span><span class="n">task</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">31</span><span class="w">        </span><span class="p">}</span><span class="w"></span>
-<span class="linenos">32</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="hll"><span class="linenos">33</span><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span> <span class="nf">wait</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">mutex</span>:<span class="nc">Arc</span><span class="o">&lt;</span><span class="k">dyn</span><span class="w"> </span><span class="n">Mutex</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-</span><span class="linenos">34</span><span class="w">        </span><span class="n">mutex</span><span class="p">.</span><span class="n">unlock</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">35</span><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">inner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">inner</span><span class="p">.</span><span class="n">exclusive_access</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">36</span><span class="w">        </span><span class="n">inner</span><span class="p">.</span><span class="n">wait_queue</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">current_task</span><span class="p">().</span><span class="n">unwrap</span><span class="p">());</span><span class="w"></span>
-<span class="linenos">37</span><span class="w">        </span><span class="nb">drop</span><span class="p">(</span><span class="n">inner</span><span class="p">);</span><span class="w"></span>
-<span class="linenos">38</span><span class="w">        </span><span class="n">block_current_and_run_next</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">39</span><span class="w">        </span><span class="n">mutex</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span><span class="w"></span>
-<span class="linenos">40</span><span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="linenos">41</span><span class="p">}</span><span class="w"></span>
+<div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1">// os/proc.h</span>
+<span class="linenos"> 2</span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos"> 3</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">pid</span><span class="p">;</span><span class="w"> </span><span class="c1">// Process ID</span>
+<span class="linenos"> 4</span><span class="w">  </span><span class="n">uint</span><span class="w"> </span><span class="n">next_condvar_id</span><span class="p">;</span><span class="w"></span>
+<span class="hll"><span class="linenos"> 5</span><span class="w">  </span><span class="k">struct</span> <span class="nc">condvar</span><span class="w"> </span><span class="n">condvar_pool</span><span class="p">[</span><span class="n">LOCK_POOL_SIZE</span><span class="p">];</span><span class="w"></span>
+</span><span class="linenos"> 6</span><span class="w">  </span><span class="p">...</span><span class="w"></span>
+<span class="linenos"> 7</span><span class="p">};</span><span class="w"></span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="c1">// os/sync.h</span>
+<span class="linenos">10</span><span class="k">struct</span> <span class="nc">condvar</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">11</span><span class="w">  </span><span class="k">struct</span> <span class="nc">queue</span><span class="w"> </span><span class="n">wait_queue</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">12</span><span class="w">  </span><span class="c1">// "alloc" data for wait queue</span>
+<span class="hll"><span class="linenos">13</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">_wait_queue_data</span><span class="p">[</span><span class="n">WAIT_QUEUE_MAX_LENGTH</span><span class="p">];</span><span class="w"></span>
+</span><span class="linenos">14</span><span class="p">};</span><span class="w"></span>
+<span class="linenos">15</span>
+<span class="linenos">16</span><span class="c1">// os/sync.c</span>
+<span class="hll"><span class="linenos">17</span><span class="k">struct</span> <span class="nc">condvar</span><span class="w"> </span><span class="o">*</span><span class="n">condvar_create</span><span class="p">()</span><span class="w"></span>
+</span><span class="linenos">18</span><span class="p">{</span><span class="w"></span>
+<span class="linenos">19</span><span class="w">  </span><span class="k">struct</span> <span class="nc">proc</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_proc</span><span class="p">();</span><span class="w"></span>
+<span class="linenos">20</span><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">next_condvar_id</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">LOCK_POOL_SIZE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">21</span><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">22</span><span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="linenos">23</span><span class="w">  </span><span class="k">struct</span> <span class="nc">condvar</span><span class="w"> </span><span class="o">*</span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">condvar_pool</span><span class="p">[</span><span class="n">p</span><span class="o">-&gt;</span><span class="n">next_condvar_id</span><span class="p">];</span><span class="w"></span>
+<span class="linenos">24</span><span class="w">  </span><span class="n">p</span><span class="o">-&gt;</span><span class="n">next_condvar_id</span><span class="o">++</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">25</span><span class="w">  </span><span class="n">init_queue</span><span class="p">(</span><span class="o">&amp;</span><span class="n">c</span><span class="o">-&gt;</span><span class="n">wait_queue</span><span class="p">,</span><span class="w"> </span><span class="n">WAIT_QUEUE_MAX_LENGTH</span><span class="p">,</span><span class="w"> </span><span class="n">c</span><span class="o">-&gt;</span><span class="n">_wait_queue_data</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">26</span><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">c</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">27</span><span class="p">}</span><span class="w"></span>
+<span class="linenos">28</span>
+<span class="hll"><span class="linenos">29</span><span class="kt">void</span><span class="w"> </span><span class="n">cond_signal</span><span class="p">(</span><span class="k">struct</span> <span class="nc">condvar</span><span class="w"> </span><span class="o">*</span><span class="n">cond</span><span class="p">)</span><span class="w"></span>
+</span><span class="linenos">30</span><span class="p">{</span><span class="w"></span>
+<span class="linenos">31</span><span class="w">  </span><span class="k">struct</span> <span class="nc">thread</span><span class="w"> </span><span class="o">*</span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">id_to_task</span><span class="p">(</span><span class="n">pop_queue</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cond</span><span class="o">-&gt;</span><span class="n">wait_queue</span><span class="p">));</span><span class="w"></span>
+<span class="linenos">32</span><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="linenos">33</span><span class="w">    </span><span class="n">t</span><span class="o">-&gt;</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RUNNABLE</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">34</span><span class="w">    </span><span class="n">add_task</span><span class="p">(</span><span class="n">t</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">35</span><span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="linenos">36</span><span class="p">}</span><span class="w"></span>
+<span class="linenos">37</span>
+<span class="hll"><span class="linenos">38</span><span class="kt">void</span><span class="w"> </span><span class="n">cond_wait</span><span class="p">(</span><span class="k">struct</span> <span class="nc">condvar</span><span class="w"> </span><span class="o">*</span><span class="n">cond</span><span class="p">,</span><span class="w"> </span><span class="k">struct</span> <span class="nc">mutex</span><span class="w"> </span><span class="o">*</span><span class="n">m</span><span class="p">)</span><span class="w"></span>
+</span><span class="linenos">39</span><span class="p">{</span><span class="w"></span>
+<span class="linenos">40</span><span class="w">  </span><span class="c1">// conditional variable will unlock the mutex first and lock it again on return</span>
+<span class="linenos">41</span><span class="w">  </span><span class="n">mutex_unlock</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">42</span><span class="w">  </span><span class="k">struct</span> <span class="nc">thread</span><span class="w"> </span><span class="o">*</span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">curr_thread</span><span class="p">();</span><span class="w"></span>
+<span class="linenos">43</span><span class="w">  </span><span class="c1">// now just wait for cond</span>
+<span class="linenos">44</span><span class="w">  </span><span class="n">push_queue</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cond</span><span class="o">-&gt;</span><span class="n">wait_queue</span><span class="p">,</span><span class="w"> </span><span class="n">task_to_id</span><span class="p">(</span><span class="n">t</span><span class="p">));</span><span class="w"></span>
+<span class="linenos">45</span><span class="w">  </span><span class="n">t</span><span class="o">-&gt;</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SLEEPING</span><span class="p">;</span><span class="w"></span>
+<span class="linenos">46</span><span class="w">  </span><span class="n">sched</span><span class="p">();</span><span class="w"></span>
+<span class="linenos">47</span><span class="w">  </span><span class="n">mutex_lock</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="linenos">48</span><span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 <p>首先是核心数据结构：</p>
 <ul class="simple">
-<li><p>第 9 行，进程控制块中管理的条件变量列表。</p></li>
-<li><p>第 15 行，条件变量的核心数据成员：等待队列。</p></li>
+<li><p>第 5 行，进程控制块中管理的条件变量列表。</p></li>
+<li><p>第 13 行，条件变量的核心数据成员：等待队列。</p></li>
 </ul>
 <p>然后是重要的三个成员函数：</p>
 <ul class="simple">
-<li><p>第 18 行，创建条件变量，即创建了一个空的等待队列。</p></li>
-<li><p>第 27 行，实现 <code class="docutils literal notranslate"><span class="pre">signal</span></code> 操作，将从条件变量的等待队列中弹出一个线程放入线程就绪队列。</p></li>
-<li><p>第 33 行，实现 <code class="docutils literal notranslate"><span class="pre">wait</span></code> 操作，释放 <code class="docutils literal notranslate"><span class="pre">mutex</span></code> 互斥锁，将把当前线程放入条件变量的等待队列，
-设置当前线程为挂起状态并选择新线程执行。在恢复执行后，再加上 <code class="docutils literal notranslate"><span class="pre">mutex</span></code> 互斥锁。</p></li>
+<li><p>第 17 行，创建条件变量，即创建了一个空的等待队列。</p></li>
+<li><p>第 29 行，实现 <code class="docutils literal notranslate"><span class="pre">signal</span></code> 操作，将从条件变量的等待队列中弹出一个线程放入线程就绪队列。</p></li>
+<li><p>第 38 行，实现 <code class="docutils literal notranslate"><span class="pre">wait</span></code> 操作，释放 <code class="docutils literal notranslate"><span class="pre">m</span></code> 互斥锁，将把当前线程放入条件变量的等待队列，
+设置当前线程为挂起状态并选择新线程执行。在恢复执行后，再加上 <code class="docutils literal notranslate"><span class="pre">m</span></code> 互斥锁。</p></li>
 </ul>
 <p>Hansen, Per Brinch (1993). “Monitors and concurrent Pascal: a personal history”. HOPL-II:
 The second ACM SIGPLAN conference on History of programming languages. History of Programming
@@ -544,7 +560,7 @@ Languages. New York, NY, USA: ACM. pp. 1–35. doi:10.1145/155360.155361. ISBN 0
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">chapter8练习</div>
+                <div class="title">chapter8 练习</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>

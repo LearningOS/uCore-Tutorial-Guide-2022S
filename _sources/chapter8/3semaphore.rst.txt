@@ -48,7 +48,7 @@ Semaphore）；如果信号量只有0或1的取值，则称为二值信号量（
   :linenos:
 
   void P(S) {
-      if S >= 1
+      if (S >= 1)
           S = S - 1;
       else
           <block and enqueue the thread>;

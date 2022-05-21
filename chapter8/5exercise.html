@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../genindex.html" /><link rel="search" title="搜索" href="../search.html" /><link rel="next" title="修改和构建本项目" href="../setup-sphinx.html" /><link rel="prev" title="条件变量机制" href="4condition-variable.html" />
 
     <meta name="generator" content="sphinx-4.1.2, furo 2021.08.31"/>
-        <title>chapter8练习 - uCore-Tutorial-Guide-2022S 0.1 文档</title>
+        <title>chapter8 练习 - uCore-Tutorial-Guide-2022S 0.1 文档</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=c7c65a82b42f6b978e58466c1e9ef2509836d916" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=16fb25fabf47304eee183a5e9af80b1ba98259b1" />
@@ -231,7 +231,7 @@
 <li class="toctree-l2"><a class="reference internal" href="2lock.html">锁机制</a></li>
 <li class="toctree-l2"><a class="reference internal" href="3semaphore.html">信号量机制</a></li>
 <li class="toctree-l2"><a class="reference internal" href="4condition-variable.html">条件变量机制</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">chapter8练习</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">chapter8 练习</a></li>
 </ul>
 </li>
 </ul>
@@ -269,99 +269,142 @@
           </label>
         </div>
         <div class="section" id="chapter8">
-<h1>chapter8练习<a class="headerlink" href="#chapter8" title="永久链接至标题">¶</a></h1>
-<div class="section" id="id1">
-<h2>编程作业<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
-<div class="section" id="id2">
-<h3>银行家算法——分数更新<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h3>
-<div class="admonition note">
-<p class="admonition-title">注解</p>
-<p>本实验为用户态实验，请在 Linux 环境下完成。</p>
-</div>
-<p>背景：在智能体大赛平台 <a class="reference external" href="https://www.saiblo.net">Saiblo</a> 网站上每打完一场双人天梯比赛后需要用 ELO 算法更新双方比分。由于 Saiblo 的评测机并发性很高，且 ELO 算法中的分值变动与双方变动前的分数有关，因此更新比分前时必须先为两位选手加锁。</p>
-<p>作业：请模拟一下上述分数更新过程，简便起见我们简化为有 p 位选手参赛（编号 [0, p) 或 [1, p] ），初始分值为 1000 分，有 m 个评测机线程（生产者）给出随机的评测结果（两位不同选手的编号以及胜负结果，结果可能为平局），有 n 个 worker 线程（消费者）获取结果队列并更新数据库（全局变量等共享数据）记录的分数。m 个评测机各自模拟 k 场对局结果后结束线程，全部对局比分更新完成后主线程打印每位选手最终成绩以及所有选手分数之和。</p>
-<p>上述参数 p、m、n、k 均为可配置参数（命令行传参或程序启动时从stdin输入）。</p>
-<p>简便起见不使用 ELO 算法，简化更新规则为：若不为平局，当 胜者分数 &gt;= 败者分数 时胜者 +20，败者 -20，否则胜者 +30，败者 -30；若为平局，分高者 -10，分低者+10（若本就同分保持则不变）。</p>
-<dl class="simple">
-<dt>消费者核心部分可参考如下伪码：</dt><dd><p>获取选手A的锁
-获取选手B的锁
-更新A、B分数
-睡眠 1ms（模拟数据库更新延时）
-释放选手B的锁
-释放选手A的锁</p>
-</dd>
-<dt>tips:</dt><dd><ul class="simple">
-<li><p>由于 ELO 以及本题中给出的简化更新算法均为零和算法，因此出现冲突后可以从所有选手分数之和明显看出来，正确处理时它应该永远为 1000p</p></li>
-<li><p>将一个 worker 线程看作哲学家，将 worker 正在处理的一场对局的两位选手看作两根筷子，则得到了经典的哲学家就餐问题</p></li>
+<h1>chapter8 练习<a class="headerlink" href="#chapter8" title="永久链接至标题">¶</a></h1>
+<ul class="simple">
+<li><p>本节难度：助教自评为工作量最高一次，请尽早开始</p></li>
 </ul>
-</dd>
-</dl>
-</div>
-<div class="section" id="eventfd">
-<h3>实现 eventfd<a class="headerlink" href="#eventfd" title="永久链接至标题">¶</a></h3>
-<p>在 Linux 中有一种用于事件通知的文件描述符，称为 eventfd 。其核心是一个 64 位无符号整数的计数器，在非信号量模式下，若计数器值不为零，则 <cite>read</cite> 函数会从中读出计数值并将其清零，否则读取失败； <cite>write</cite> 函数将缓冲区中的数值加入到计数器中。在信号量模式下，若计数器值非零，则 <cite>read</cite> 操作将计数值减一，并返回 1 ； <cite>write</cite> 将计数值加一。我们将实现一个新的系统调用： <cite>sys_eventfd2</cite> 。</p>
-<p><strong>eventfd</strong>：</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>syscall ID: 290</p></li>
-<li><p>功能：创建一个 eventfd， <a class="reference external" href="https://linux.die.net/man/2/eventfd">eventfd 标准接口</a> 。</p></li>
-<li><p>C 接口： <code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">eventfd(unsigned</span> <span class="pre">int</span> <span class="pre">initval,</span> <span class="pre">int</span> <span class="pre">flags)</span></code></p></li>
-<li><p>Rust 接口： <code class="docutils literal notranslate"><span class="pre">fn</span> <span class="pre">eventfd(initval:</span> <span class="pre">u32,</span> <span class="pre">flags:</span> <span class="pre">i32)</span> <span class="pre">-&gt;</span> <span class="pre">i32</span></code></p></li>
+<div class="section" id="id1">
+<h2>本章任务<a class="headerlink" href="#id1" title="永久链接至标题">¶</a></h2>
+<ul class="simple">
+<li><p>本次任务对应 lab5，也是本学期最后一次实验，祝你好运。</p></li>
+<li><p>老规矩，先 <cite>make test BASE=1</cite> 看下啥情况。</p></li>
 <li><dl class="simple">
-<dt>参数：</dt><dd><ul>
-<li><p>initval: 计数器的初值。</p></li>
+<dt>理解框架的多线程机制，了解几种锁的运行原理。在此基础上，实现本章编程作业死锁检测。</dt><dd><ul>
+<li><p>如果时间有限，多线程机制的一些细节大可跳过，但至少应知道多线程基本原理和本章在任务调度粒度上的调整</p></li>
+<li><p>与实验息息相关的是互斥锁(mutex)与信号量(semaphore)，条件变量(condvar)供阅读</p></li>
 <li><dl class="simple">
-<dt>flags: 可以设置为 0 或以下两个 flag 的任意组合（按位或）：</dt><dd><ul>
-<li><p>EFD_SEMAPHORE (1) ：设置该 flag 时，将以信号量模式创建 eventfd 。</p></li>
-<li><p>EFD_NONBLOCK (2048) ：若设置该 flag ，对 eventfd 读写失败时会返回 -2 ，否则将阻塞等待直至读或写操作可执行为止。</p></li>
+<dt>框架包含 <code class="docutils literal notranslate"><span class="pre">LAB5</span></code> 字样的注释中给出了一个供参考的实现位置和顺序，你可以按顺序完成（下面的标号与注释中的一种）：</dt><dd><ul>
+<li><p>1: 定义并初始化部分 PCB 的部分变量，包括控制死锁检测启动与死锁检测算法用到的变量，
+你可以先定义一部分，后面发现有需要时再做添加；</p></li>
+<li><p>2: 完成系统调用 <code class="docutils literal notranslate"><span class="pre">sys_enable_deadlock_detect</span></code>，只需要修改变量，不必考虑是否正确实现了死锁。
+完成这一步后你可以顺利跑完 <code class="docutils literal notranslate"><span class="pre">ch8_sem2_deadlock</span></code>，这个测例开启了死锁检测但并没有死锁；</p></li>
+<li><p>3: 尝试写一个函数实现下面提到的死锁检测算法，注释中给了供参考的函数签名。
+这是一个和OS独立的函数，你可以自行设计数据单独运行它以测试；</p></li>
+<li><p>4-1: 维护 mutex 相关的死锁检测变量，并调用死锁检测算法，完成后你可以顺利跑完测例 <code class="docutils literal notranslate"><span class="pre">ch8_mut1_deadlock</span></code>；</p></li>
+<li><p>4-2: 维护 semaphore 相关的死锁检测变量，并调用死锁检测算法，完成后你可以顺利跑完测例 <code class="docutils literal notranslate"><span class="pre">ch8_sem1_deadlock</span></code>；</p></li>
 </ul>
 </dd>
 </dl>
 </li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>最终，完成实验报告并 push 你的 ch8 分支到远程仓库。push 代码后会自动执行 CI，代码给分以 CI 给分为准。</p></li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h2>编程作业<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">警告</p>
+<p>本次实验框架变动较大，且改动较为复杂，为降低同学们的工作量，本次实验不要求合并之前的实验内容，
+只需通过 ch8 系列的测例和前面章节的基础测例即可。</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">注解</p>
+<p>本次实验的工作量约为 100~200 行代码。</p>
+</div>
+<div class="section" id="id3">
+<h3>死锁检测<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h3>
+<p>目前的 mutex 和 semaphore 相关的系统调用不会分析资源的依赖情况，用户程序可能出现死锁。
+我们希望在系统中加入死锁检测机制，当发现可能发生死锁时拒绝对应的资源获取请求。
+一种检测死锁的算法如下：</p>
+<p>定义如下三个数据结构：</p>
+<ul class="simple">
+<li><p>可利用资源向量 Available ：含有 m 个元素的一维数组，每个元素代表可利用的某一类资源的数目，
+其初值是该类资源的全部可用数目，其值随该类资源的分配和回收而动态地改变。
+Available[j] = k，表示第 j 类资源的可用数量为 k。</p></li>
+<li><p>分配矩阵 Allocation：n * m 矩阵，表示每类资源已分配给每个线程的资源数。
+Allocation[i,j] = g，则表示线程 i 当前己分得第 j 类资源的数量为 g。</p></li>
+<li><p>需求矩阵 Request：n * m 的矩阵，表示每个线程还需要的各类资源数量。
+Request[i,j] = d，则表示线程 i 还需要第 j 类资源的数量为 d 。</p></li>
+</ul>
+<p>算法运行过程如下：</p>
+<ol class="arabic simple">
+<li><p>设置两个向量: 工作向量 Work，表示操作系统可提供给线程继续运行所需的各类资源数目，它含有
+m 个元素。初始时，Work = Available ；结束向量 Finish，表示系统是否有足够的资源分配给线程，
+使之运行完成。初始时 Finish[0~n-1] = false，表示所有线程都没结束；当有足够资源分配给线程时，
+设置 Finish[i] = true。</p></li>
+<li><p>从线程集合中找到一个能满足下述条件的线程 i</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span>Finish[i] == false;
+<span class="linenos">2</span>Request[i,0~n-1] ≤ Work[0~n-1];
+</pre></div>
+</div>
+<p>若找到，执行步骤 3，否则执行步骤 4。</p>
+<ol class="arabic simple" start="3">
+<li><p>当线程 i 获得资源后，可顺利执行，直至完成，并释放出分配给它的资源，故应执行:</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="n">Work</span><span class="p">[</span><span class="mi">0</span><span class="o">~</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">Work</span><span class="p">[</span><span class="mi">0</span><span class="o">~</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">Allocation</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="o">~</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">];</span>
+<span class="linenos">2</span><span class="n">Finish</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">true</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>跳转回步骤2</p>
+<ol class="arabic simple" start="4">
+<li><p>如果 Finish[0~n-1] 都为 true，则表示系统处于安全状态；否则表示系统处于不安全状态，即出现死锁。</p></li>
+</ol>
+<p>出于兼容性和灵活性考虑，我们允许进程按需开启或关闭死锁检测功能。为此我们将实现一个新的系统调用：
+<code class="docutils literal notranslate"><span class="pre">sys_enable_deadlock_detect</span></code> 。</p>
+<p><strong>enable_deadlock_detect</strong>：</p>
+<ul class="simple">
+<li><p>syscall ID:  469</p></li>
+<li><p>功能：为当前进程启用或禁用死锁检测功能。</p></li>
+<li><p>接口： <code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">enable_deadlock_detect(int</span> <span class="pre">is_enable)</span></code></p></li>
+<li><dl class="simple">
+<dt>参数：</dt><dd><ul>
+<li><p>is_enable: 为 1 表示启用死锁检测， 0 表示禁用死锁检测。</p></li>
 </ul>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
 <dt>说明：</dt><dd><ul>
-<li><p>通过 <cite>write</cite> 写入 eventfd 时，缓冲区大小必须为 8 字节。</p></li>
-<li><p>进程 <cite>fork</cite> 时，子进程会继承父进程创建的 eventfd ，且指向同一个计数器。</p></li>
+<li><p>开启死锁检测功能后， <code class="docutils literal notranslate"><span class="pre">mutex_lock</span></code> 和 <code class="docutils literal notranslate"><span class="pre">semaphore_down</span></code> 如果检测到死锁，
+应拒绝相应操作并返回 -0xDEAD (十六进制值)。</p></li>
+<li><p>简便起见可对 mutex 和 semaphore 分别进行检测，无需考虑二者 (以及 <code class="docutils literal notranslate"><span class="pre">waittid</span></code> 等)
+混合使用导致的死锁。</p></li>
 </ul>
 </dd>
 </dl>
 </li>
-<li><p>返回值：如果出现了错误则返回 -1，否则返回创建成功的 eventfd 编号。</p></li>
+<li><p>返回值：如果出现了错误则返回 -1，否则返回 0。</p></li>
 <li><dl class="simple">
 <dt>可能的错误</dt><dd><ul>
-<li><p>flag 不合法。</p></li>
-<li><p>创建的文件描述符数量超过进程限制</p></li>
+<li><p>参数不合法</p></li>
 </ul>
 </dd>
 </dl>
 </li>
 </ul>
-</div></blockquote>
-<div class="admonition note">
-<p class="admonition-title">注解</p>
-<p>还有一个 <cite>sys_eventfd</cite> 系统调用（调用号 284），与 <cite>sys_eventfd2</cite> 的区别在于前者不支持传入 flags 。</p>
-<p>Linux 中的原生异步 IO 接口 libaio 就使用了 eventfd 作为内核完成 IO 操作之后通知应用程序的机制。</p>
 </div>
 </div>
 <div class="section" id="id4">
-<h3>实验要求<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h3>
-<ul class="simple">
-<li><p>完成分支: ch8。</p></li>
-<li><p>实验目录要求不变。</p></li>
-<li><p>通过所有测例。</p></li>
-</ul>
-<p>你的内核必须前向兼容，能通过前一章的所有测例。</p>
-</div>
+<h2>问答作业<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
+<ol class="arabic simple">
+<li><p>在我们的多线程实现中，当主线程 (即 0 号线程) 退出时，视为整个进程退出，
+此时需要结束该进程管理的所有线程并回收其资源。
+- 需要回收的资源有哪些？
+- 其他线程的 TaskControlBlock 可能在哪些位置被引用，分别是否需要回收，为什么？</p></li>
+<li><p>对比以下两种 <code class="docutils literal notranslate"><span class="pre">mutex_unlock</span></code> 中阻塞锁的实现，二者有什么区别？这些区别可能会导致什么问题？
+（假设无论 <code class="docutils literal notranslate"><span class="pre">mutex_lock</span></code> 均正确处理了 <code class="docutils literal notranslate"><span class="pre">m-&gt;locked</span></code>）</p></li>
+</ol>
 </div>
 <div class="section" id="id5">
 <h2>报告要求<a class="headerlink" href="#id5" title="永久链接至标题">¶</a></h2>
+<p>注意目录要求，报告命名 <code class="docutils literal notranslate"><span class="pre">lab5.md</span></code> 或 <code class="docutils literal notranslate"><span class="pre">lab5.pdf</span></code>，位于 reports 目录下。 后续实验同理。</p>
 <ul class="simple">
-<li><p>简单总结你实现的功能（200字以内，不要贴代码）。</p></li>
-<li><p>完成问答题。</p></li>
+<li><p>简单总结你实现的功能（200字以内，不要贴代码）及你完成本次实验所用的时间。</p></li>
+<li><p>完成 ch8 问答题。</p></li>
 <li><p>(optional) 你对本次实验设计及难度/工作量的看法，以及有哪些需要改进的地方，欢迎畅所欲言。</p></li>
 </ul>
 </div>
@@ -421,13 +464,13 @@
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">chapter8练习</a><ul>
-<li><a class="reference internal" href="#id1">编程作业</a><ul>
-<li><a class="reference internal" href="#id2">银行家算法——分数更新</a></li>
-<li><a class="reference internal" href="#eventfd">实现 eventfd</a></li>
-<li><a class="reference internal" href="#id4">实验要求</a></li>
+<li><a class="reference internal" href="#">chapter8 练习</a><ul>
+<li><a class="reference internal" href="#id1">本章任务</a></li>
+<li><a class="reference internal" href="#id2">编程作业</a><ul>
+<li><a class="reference internal" href="#id3">死锁检测</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#id4">问答作业</a></li>
 <li><a class="reference internal" href="#id5">报告要求</a></li>
 </ul>
 </li>

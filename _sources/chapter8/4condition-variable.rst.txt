@@ -12,67 +12,71 @@
 我们来看一个例子，有两个线程 first 和 second 在运行，线程 first 会把全局变量 A 设置为
 1，而线程 second 在 ``A != 0`` 的条件满足后，才能继续执行，如下面的伪代码所示：
 
-.. code-block:: rust
-    :linenos:
+.. code-block:: C
+  :linenos:
 
-    static mut A: usize = 0;
-    unsafe fn first() -> ! {
-        A=1;
-        ...
-    }
+  static int A = 0;
+  void first() {
+      A=1;
+      ...
+  }
 
-    unsafe fn second() -> ! {
-        while A==0 {
-          // 忙等或睡眠等待 A==1
-        };
-        //继续执行相关事务
-    }
+  void second() {
+      while (A==0) {
+        // 忙等或睡眠等待 A==1
+      };
+      //继续执行相关事务
+  }
 
 在上面的例子中，如果线程 second 先执行，会忙等在 while 循环中，在操作系统的调度下，线程
 first 会执行并把 A 赋值为 1 后，然后线程 second 再次执行时，就会跳出 while 循环，进行接下来的工作。
 配合互斥锁，可以正确完成上述带条件的同步流程，如下面的伪代码所示：
 
-.. code-block:: rust
-    :linenos:
+.. code-block:: C
+  :linenos:
 
-    static mut A: usize = 0;
-    unsafe fn first() -> ! {
-        mutex.lock();
-        A=1;
-        mutex.unlock();
-        ...
-    }
+  static int A = 0;
+  void first() {
+      mutex.lock();
+      A=1;
+      mutex.unlock();
+      ...
+  }
 
-    unsafe fn second() -> ! {
-        mutex.lock();
-        while A==0 { };
-        mutex.unlock();
-        //继续执行相关事务
+  void second() {
+    mutex.lock();
+    while A == 0 {
+      mutex.unlock();
+      // give other thread chance to lock
+      mutex.lock();
     }
+    mutex.unlock();
+      //继续执行相关事务
+  }
 
 这种实现能执行，但效率低下，因为线程 second 会忙等检查，浪费处理器时间。我们希望有某种方式让线程
 second 休眠，直到等待的条件满足，再继续执行。于是，我们可以写出如下的代码：
 
-.. code-block:: rust
-    :linenos:
+.. code-block:: C
+  :linenos:
 
-    static mut A: usize = 0;
-    unsafe fn first() -> ! {
-        mutex.lock();
-        A=1;
-        wakup(second);
-        mutex.unlock();
-        ...
-    }
+  static int A = 0;
+  void first() {
+      mutex.lock();
+      A=1;
+      wakup(second);
+      mutex.unlock();
+      ...
+  }
 
-    unsafe fn second() -> ! {
-        mutex.lock();
-        while A==0 {
-           wait();
-        };
-        mutex.unlock();
-        //继续执行相关事务
-    }
+  void second() {
+      mutex.lock();
+      while (A==0) {
+          wait();
+      };
+      mutex.unlock();
+      //继续执行相关事务
+  }
 
 粗略地看，这样就可以实现睡眠等待了。但请同学仔细想想，当线程 second 在睡眠的时候， ``mutex``
 是否已经上锁了？ 确实，线程 second 是带着上锁的 ``mutex`` 进入等待睡眠状态的。
@@ -115,41 +119,41 @@ second 休眠，直到等待的条件满足，再继续执行。于是，我们�
 在目前的 C 语言应用开发中，实际上也是这么做的。这样，我们就可以用互斥锁和条件变量，
 来重现上述的同步互斥例子：
 
-.. code-block:: rust
-    :linenos:
+.. code-block:: C
+  :linenos:
 
-    static mut A: usize = 0;
-    unsafe fn first() -> ! {
-        mutex.lock();
-        A=1;
-        condvar.wakup();
-        mutex.unlock();
-        ...
-    }
+  static int A = 0;
+  void first() {
+      mutex.lock();
+      A=1;
+      condvar.wakup();
+      mutex.unlock();
+      ...
+  }
 
-    unsafe fn second() -> ! {
-        mutex.lock();
-        while A==0 {
-           condvar.wait(mutex); //在睡眠等待之前，需要释放mutex
-        };
-        mutex.unlock();
-        //继续执行相关事务
-    }
+  void second() { 
+      mutex.lock();
+      while (A==0) {
+          condvar.wait(mutex); //在睡眠等待之前，需要释放mutex
+      };
+      mutex.unlock();
+      //继续执行相关事务
+  }
 
 有了上面的介绍，我们就可以实现条件变量的基本逻辑了。下面是条件变量的 wait 和 signal 操作的伪代码：
 
-.. code-block:: rust
-    :linenos:
+.. code-block:: C
+  :linenos:
 
-    fn wait(mutex) {
-        mutex.unlock();
-        <block and enqueue the thread>;
-        mutex.lock();
-    }
+  void wait(mutex) {
+      mutex.unlock();
+      <block and enqueue the thread>;
+      mutex.lock();
+  }
 
-    fn signal() {
-        <unblock a thread>;
-    }
+  void signal() {
+      <unblock a thread>;
+  }
 
 条件变量的wait操作包含三步，1. 释放锁；2. 把自己挂起；3. 被唤醒后，再获取锁。条件变量的 signal
 操作只包含一步：找到挂在条件变量上睡眠的线程，把它唤醒。
@@ -170,55 +174,60 @@ Second 执行时，会由于条件不满足执行条件变量的 wait 操作而�
 A 为 1，让线程 second 等待的条件满足，然后会执行条件变量的 signal 操作，从而能够唤醒线程 Second。
 这样线程 First 和线程 Second 就形成了一种稳定的同步与互斥关系。
 
-.. code-block:: rust
-    :linenos:
-    :emphasize-lines: 11,19,26,33,36,39
+.. code-block:: C
+  :linenos:
+  :emphasize-lines: 34,44,39
 
-    static mut A: usize = 0;   //全局变量
+  static int A = 0;   //全局变量
 
-    const CONDVAR_ID: usize = 0;
-    const MUTEX_ID: usize = 0;
+  const int CONDVAR_ID = 0;
+  const int MUTEX_ID = 0;
 
-    unsafe fn first() -> ! {
-        sleep(10);
-        println!("First work, Change A --> 1 and wakeup Second");
-        mutex_lock(MUTEX_ID);
-        A=1;
-        condvar_signal(CONDVAR_ID);
-        mutex_unlock(MUTEX_ID);
-        ...
-    }
-    unsafe fn second() -> ! {
-        println!("Second want to continue,but need to wait A=1");
-        mutex_lock(MUTEX_ID);
-        while A==0 {
-            condvar_wait(CONDVAR_ID, MUTEX_ID);
-        }
-        mutex_unlock(MUTEX_ID);
-        ...
-    }
-    pub fn main() -> i32 {
-        // create condvar & mutex
-        assert_eq!(condvar_create() as usize, CONDVAR_ID);
-        assert_eq!(mutex_blocking_create() as usize, MUTEX_ID);
-        // create first, second threads
-        ...
-    }
+  void first() {
+      sleep(10);
+      puts("First work, Change A --> 1 and wakeup Second");
+      mutex_lock(MUTEX_ID);
+      A = 1;
+      condvar_signal(CONDVAR_ID);
+      mutex_unlock(MUTEX_ID);
+      ...
+  }
+  void second() {
+      puts("Second want to continue,but need to wait A=1");
+      mutex_lock(MUTEX_ID);
+      while (A == 0) {
+          condvar_wait(CONDVAR_ID, MUTEX_ID);
+      }
+      mutex_unlock(MUTEX_ID);
+      ...
+  }
+  int main() {
+      // create condvar & mutex
+      assert_eq(condvar_create(), CONDVAR_ID);
+      assert_eq(mutex_blocking_create(), MUTEX_ID);
+      // create first, second threads
+      ...
+  }
 
-    pub fn condvar_create() -> isize {
-        sys_condvar_create(0)
-    }
-    pub fn condvar_signal(condvar_id: usize) {
-        sys_condvar_signal(condvar_id);
-    }
-    pub fn condvar_wait(condvar_id: usize, mutex_id: usize) {
-        sys_condvar_wait(condvar_id, mutex_id);
-    }
+  int condvar_create()
+  {
+    return syscall(SYS_condvar_create);
+  }
 
-- 第 26 行，创建了一个 ID 为 ``CONDVAR_ID`` 的条件量，对应第 33 行 ``SYSCALL_CONDVAR_CREATE`` 系统调用；
-- 第 19 行，线程 Second 执行条件变量 ``wait`` 操作（对应第 39 行 ``SYSCALL_CONDVAR_WAIT`` 系统调用），
+  int condvar_signal(int cid)
+  {
+    return syscall(SYS_condvar_signal, cid);
+  }
+
+  int condvar_wait(int cid, int mid)
+  {
+    return syscall(SYS_condvar_wait, cid, mid);
+  }
+
+- 第 26 行，创建了一个 ID 为 ``CONDVAR_ID`` 的条件量，对应第 34 行 ``SYSCALL_CONDVAR_CREATE`` 系统调用；
+- 第 19 行，线程 Second 执行条件变量 ``wait`` 操作（对应第 44 行 ``SYSCALL_CONDVAR_WAIT`` 系统调用），
   该线程将释放 ``mutex`` 锁并阻塞；
-- 第 5 行，线程 First 执行条件变量 ``signal`` 操作（对应第 36 行 ``SYSCALL_CONDVAR_SIGNAL`` 系统调用），
+- 第 5 行，线程 First 执行条件变量 ``signal`` 操作（对应第 39 行 ``SYSCALL_CONDVAR_SIGNAL`` 系统调用），
   会唤醒等待该条件变量的线程 Second。
 
 
@@ -233,63 +242,70 @@ A 为 1，让线程 second 等待的条件满足，然后会执行条件变量�
 如何让线程睡眠或唤醒线程。在这里， ``wait`` 操作是由 ``Condvar`` 的 ``wait`` 方法实现，而 ``signal``
 操作是由 ``Condvar`` 的 ``signal`` 方法实现。
 
-.. code-block:: rust
-    :linenos:
-    :emphasize-lines: 9,15,18,27,33
+.. code-block:: C
+  :linenos:
+  :emphasize-lines: 5,13,17,29,38
 
-    pub struct ProcessControlBlock {
-        // immutable
-        pub pid: PidHandle,
-        // mutable
-        inner: UPSafeCell<ProcessControlBlockInner>,
+  // os/proc.h
+  struct proc {
+    int pid; // Process ID
+    uint next_condvar_id;
+    struct condvar condvar_pool[LOCK_POOL_SIZE];
+    ...
+  };
+
+  // os/sync.h
+  struct condvar {
+    struct queue wait_queue;
+    // "alloc" data for wait queue
+    int _wait_queue_data[WAIT_QUEUE_MAX_LENGTH];
+  };  
+
+  // os/sync.c
+  struct condvar *condvar_create()
+  {
+    struct proc *p = curr_proc();
+    if (p->next_condvar_id >= LOCK_POOL_SIZE) {
+      return NULL;
     }
-    pub struct ProcessControlBlockInner {
-        ...
-        pub condvar_list: Vec<Option<Arc<Condvar>>>,
+    struct condvar *c = &p->condvar_pool[p->next_condvar_id];
+    p->next_condvar_id++;
+    init_queue(&c->wait_queue, WAIT_QUEUE_MAX_LENGTH, c->_wait_queue_data);
+    return c;
+  }
+
+  void cond_signal(struct condvar *cond)
+  {
+    struct thread *t = id_to_task(pop_queue(&cond->wait_queue));
+    if (t) {
+      t->state = RUNNABLE;
+      add_task(t);
     }
-    pub struct Condvar {
-        pub inner: UPSafeCell<CondvarInner>,
-    }
-    pub struct CondvarInner {
-        pub wait_queue: VecDeque<Arc<TaskControlBlock>>,
-    }
-    impl Condvar {
-        pub fn new() -> Self {
-            Self {
-                inner: unsafe { UPSafeCell::new(
-                    CondvarInner {
-                        wait_queue: VecDeque::new(),
-                    }
-                )},
-            }
-        }
-        pub fn signal(&self) {
-            let mut inner = self.inner.exclusive_access();
-            if let Some(task) = inner.wait_queue.pop_front() {
-                add_task(task);
-            }
-        }
-        pub fn wait(&self, mutex:Arc<dyn Mutex>) {
-            mutex.unlock();
-            let mut inner = self.inner.exclusive_access();
-            inner.wait_queue.push_back(current_task().unwrap());
-            drop(inner);
-            block_current_and_run_next();
-            mutex.lock();
-        }
-    }
+  }
+
+  void cond_wait(struct condvar *cond, struct mutex *m)
+  {
+    // conditional variable will unlock the mutex first and lock it again on return
+    mutex_unlock(m);
+    struct thread *t = curr_thread();
+    // now just wait for cond
+    push_queue(&cond->wait_queue, task_to_id(t));
+    t->state = SLEEPING;
+    sched();
+    mutex_lock(m);
+  }
 
 首先是核心数据结构：
 
-- 第 9 行，进程控制块中管理的条件变量列表。
-- 第 15 行，条件变量的核心数据成员：等待队列。
+- 第 5 行，进程控制块中管理的条件变量列表。
+- 第 13 行，条件变量的核心数据成员：等待队列。
 
 然后是重要的三个成员函数：
 
-- 第 18 行，创建条件变量，即创建了一个空的等待队列。
-- 第 27 行，实现 ``signal`` 操作，将从条件变量的等待队列中弹出一个线程放入线程就绪队列。
-- 第 33 行，实现 ``wait`` 操作，释放 ``mutex`` 互斥锁，将把当前线程放入条件变量的等待队列，
-  设置当前线程为挂起状态并选择新线程执行。在恢复执行后，再加上 ``mutex`` 互斥锁。
+- 第 17 行，创建条件变量，即创建了一个空的等待队列。
+- 第 29 行，实现 ``signal`` 操作，将从条件变量的等待队列中弹出一个线程放入线程就绪队列。
+- 第 38 行，实现 ``wait`` 操作，释放 ``m`` 互斥锁，将把当前线程放入条件变量的等待队列，
+  设置当前线程为挂起状态并选择新线程执行。在恢复执行后，再加上 ``m`` 互斥锁。
 
 Hansen, Per Brinch (1993). "Monitors and concurrent Pascal: a personal history". HOPL-II:
 The second ACM SIGPLAN conference on History of programming languages. History of Programming
