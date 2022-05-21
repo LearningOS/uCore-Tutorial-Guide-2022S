@@ -32,10 +32,10 @@ chapter6练习
    - oldpath：原有文件路径
    - newpath: 新的链接文件路径。
 - 说明：
-    - 为了方便，不考虑新文件路径已经存在的情况（属于未定义行为），除非链接同名文件。
-    - 返回值：如果出现了错误则返回 -1，否则返回 0。
+   - 为了方便，不考虑新文件路径已经存在的情况（属于未定义行为），除非链接同名文件。
+   - 返回值：如果出现了错误则返回 -1，否则返回 0。
 - 可能的错误
-    - 链接同名文件。
+   - 链接同名文件。
 
 **unlinkat**:
 
@@ -43,14 +43,14 @@ chapter6练习
 - 功能：取消一个文件路径到文件的链接, `unlinkat标准接口 <https://linux.die.net/man/2/unlinkat>`_ 。
 - 接口： ``int unlinkat(int dirfd, char* path, unsigned int flags)``
 - 参数：
-    - dirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
-    - flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。
-    - path：文件路径。
+   - dirfd: 仅为了兼容性考虑，本次实验中始终为 AT_FDCWD (-100)，可以忽略。
+   - flags: 仅为了兼容性考虑，本次实验中始终为 0，可以忽略。
+   - path：文件路径。
 - 说明：
-    - 需要注意 unlink 掉所有硬链接后彻底删除文件的情况。
+   - 需要注意 unlink 掉所有硬链接后彻底删除文件的情况。
 - 返回值：如果出现了错误则返回 -1，否则返回 0。
 - 可能的错误
-    - 文件不存在。
+   - 文件不存在。
 
 **fstat**:
 
@@ -58,20 +58,22 @@ chapter6练习
 - 功能：获取文件状态。
 - 接口： ``int fstat(int fd, struct Stat* st)``
 - 参数：
-    - fd: 文件描述符
-    - st: 文件状态结构体
-    .. code-block:: c
-        struct Stat {
-            uint64 dev,     // 文件所在磁盘驱动号，该实现写死为 0 即可。
-            uint64 ino,     // inode 文件所在 inode 编号
-            uint32 mode,    // 文件类型
-            uint32 nlink,   // 硬链接数量，初始为1
-            uint64 pad[7],  // 无需考虑，为了兼容性设计
-        }
+   - fd: 文件描述符
+   - st: 文件状态结构体
 
-        // 文件类型只需要考虑:
-        #define DIR 0x040000		// directory
-        #define FILE 0x100000		// ordinary regular file
+   .. code-block:: c
+
+      struct Stat {
+         uint64 dev,     // 文件所在磁盘驱动号，该实现写死为 0 即可。
+         uint64 ino,     // inode 文件所在 inode 编号
+         uint32 mode,    // 文件类型
+         uint32 nlink,   // 硬链接数量，初始为1
+         uint64 pad[7],  // 无需考虑，为了兼容性设计
+      }
+
+      // 文件类型只需要考虑:
+      #define DIR 0x040000		// directory
+      #define FILE 0x100000		// ordinary regular file
         
 - 返回值：如果出现了错误则返回 -1，否则返回 0。
 - 可能的错误
