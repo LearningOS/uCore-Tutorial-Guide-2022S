@@ -78,6 +78,26 @@ Semaphore）；如果信号量只有0或1的取值，则称为二值信号量（
         ...
     }
 
+下面是另外一种信号量实现的伪代码：
+
+.. code-block:: c
+    :linenos:
+
+    void P(S) {
+        S = S - 1;
+        if (S < 0)
+            <block and enqueue the thread>;
+    }
+
+    void V(S) {
+        S = S + 1;
+        if <some threads are blocked on the queue>
+            <unblock a thread>;
+    }
+
+在这种实现中，S 的初值一般设置为一个大于 0 的正整数，表示可以进入临界区的线程数。但 S
+的取值范围可以是小于 0 的整数，表示等待进入临界区的睡眠线程数。
+
 信号量的另一种用途是用于实现同步（synchronization）。比如，把信号量的初始值设置为 0 ，
 当一个线程 A 对此信号量执行一个 P 操作，那么该线程立即会被阻塞睡眠。之后有另外一个线程 B
 对此信号量执行一个 V 操作，就会将线程 A 唤醒。这样线程 B 中执行 V 操作之前的代码序列 B-stmts
