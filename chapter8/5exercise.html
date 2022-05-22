@@ -305,14 +305,16 @@
 </div>
 <div class="section" id="id2">
 <h2>编程作业<a class="headerlink" href="#id2" title="永久链接至标题">¶</a></h2>
-<div class="admonition warning">
-<p class="admonition-title">警告</p>
-<p>本次实验框架变动较大，且改动较为复杂，为降低同学们的工作量，本次实验不要求合并之前的实验内容，
-只需通过 ch8 系列的测例和前面章节的基础测例即可。</p>
-</div>
 <div class="admonition note">
 <p class="admonition-title">注解</p>
-<p>本次实验的工作量约为 100~200 行代码。</p>
+<p>本次实验框架变动较大，且改动较为复杂，为降低同学们的工作量，本次实验不要求合并之前的实验内容，
+可以直接 checkout 到助教的 ch8 框架开始实验，最终只需通过 ch8 系列的测例和前面章节的基础测例即可。</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">警告</p>
+<p>本次实验实现死锁检测算法本身只需要40行左右代码，但加上系统调用实现、变量声明与初始化、
+以及在锁的创建、锁、释放时维护死锁检测 Available、Allocation、Request 数组，
+总代码量预计在100~200行。</p>
 </div>
 <div class="section" id="id3">
 <h3>死锁检测<a class="headerlink" href="#id3" title="永久链接至标题">¶</a></h3>
@@ -392,9 +394,12 @@ m 个元素。初始时，Work = Available ；结束向量 Finish，表示系统
 <h2>问答作业<a class="headerlink" href="#id4" title="永久链接至标题">¶</a></h2>
 <ol class="arabic simple">
 <li><p>在我们的多线程实现中，当主线程 (即 0 号线程) 退出时，视为整个进程退出，
-此时需要结束该进程管理的所有线程并回收其资源。
-- 需要回收的资源有哪些？
-- 其他线程的 TaskControlBlock 可能在哪些位置被引用，分别是否需要回收，为什么？</p></li>
+此时需要结束该进程管理的所有线程并回收其资源。</p>
+<ul class="simple">
+<li><p>需要回收的资源有哪些？</p></li>
+<li><p>其他线程的 <code class="docutils literal notranslate"><span class="pre">struct</span> <span class="pre">thread</span></code> 可能在哪些位置被引用，分别是否需要回收，为什么？</p></li>
+</ul>
+</li>
 <li><p>对比以下两种 <code class="docutils literal notranslate"><span class="pre">mutex_unlock</span></code> 中阻塞锁的实现，二者有什么区别？这些区别可能会导致什么问题？
 （假设无论 <code class="docutils literal notranslate"><span class="pre">mutex_lock</span></code> 均正确处理了 <code class="docutils literal notranslate"><span class="pre">m-&gt;locked</span></code>）</p></li>
 </ol>
