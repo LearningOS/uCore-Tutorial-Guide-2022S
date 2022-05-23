@@ -117,6 +117,7 @@ chapter8 练习
 
 .. code-block:: C
    :linenos:
+
    void mutex_unlock_v1(struct mutex *m)
    {
       if (m->blocking) {
