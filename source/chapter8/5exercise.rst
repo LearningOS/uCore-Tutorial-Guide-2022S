@@ -113,7 +113,7 @@ chapter8 练习
    - 其他线程的 ``struct thread`` 可能在哪些位置被引用，分别是否需要回收，为什么？
 
 2. 对比以下两种 ``mutex_unlock`` 中阻塞锁的实现，二者有什么区别？这些区别可能会导致什么问题？
-   （假设无论 ``mutex_lock`` 均正确处理了 ``m->locked``）
+   （假设无论哪种实现，对应的 ``mutex_lock`` 均正确处理了 ``m->locked``）
 
 .. code-block:: C
    :linenos:
