@@ -401,7 +401,7 @@ m 个元素。初始时，Work = Available ；结束向量 Finish，表示系统
 </ul>
 </li>
 <li><p>对比以下两种 <code class="docutils literal notranslate"><span class="pre">mutex_unlock</span></code> 中阻塞锁的实现，二者有什么区别？这些区别可能会导致什么问题？
-（假设无论 <code class="docutils literal notranslate"><span class="pre">mutex_lock</span></code> 均正确处理了 <code class="docutils literal notranslate"><span class="pre">m-&gt;locked</span></code>）</p></li>
+（假设无论哪种实现，对应的 <code class="docutils literal notranslate"><span class="pre">mutex_lock</span></code> 均正确处理了 <code class="docutils literal notranslate"><span class="pre">m-&gt;locked</span></code>）</p></li>
 </ol>
 <div class="highlight-C notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kt">void</span><span class="w"> </span><span class="nf">mutex_unlock_v1</span><span class="p">(</span><span class="k">struct</span> <span class="nc">mutex</span><span class="w"> </span><span class="o">*</span><span class="n">m</span><span class="p">)</span><span class="w"></span>
 <span class="linenos"> 2</span><span class="p">{</span><span class="w"></span>
